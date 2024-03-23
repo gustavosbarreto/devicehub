@@ -36,7 +36,7 @@ set -o allexport
 
 env_override=${ENV_OVERRIDE:-./.env.override}
 if [ -f "$env_override" ]; then
-    echo "INFO: Loading $env_override"
+    echo "INFO: Loading $env_override" 1>&2;
     . "$env_override"
 fi
 

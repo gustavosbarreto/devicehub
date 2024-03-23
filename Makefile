@@ -87,14 +87,13 @@ upgrade_mongodb:
 	start_mongodb() {
 		# Convert version to suitable format for 'setFeatureCompatibilityVersion'
 		SERIES_VERSION=$$(echo $$1 | sed 's,\.[0-9]\+$$,,g')
+		MAJOR_VERSION=$$(echo $$1 | cut -d. -f1)
 
 		export EXTRA_COMPOSE_FILE=$$(mktemp)
 		echo "$$COMPOSE_TEMPLATE" | sed "s,_VERSION_,$$1,g" > $$EXTRA_COMPOSE_FILE
 
 		$(DOCKER_COMPOSE) stop mongo
 		$(DOCKER_COMPOSE) up -d mongo
-
-		wait_for_mongo
 
 		# Command used to set compatibility version
 		MONGO_SET_COMPAT_VERSION_CMD=$$(cat <<-EOF
@@ -103,6 +102,23 @@ upgrade_mongodb:
 			})
 		EOF
 		)
+
+		# The legacy mongo shell is removed from MongoDB 6.0. The replacement is mongosh
+		if [ $$MAJOR_VERSION -ge 6 ]; then
+			$(DOCKER_COMPOSE) exec mongo ln -sf /usr/bin/mongosh /usr/bin/mongo
+		fi
+
+		if [ $$MAJOR_VERSION -ge 7 ]; then
+			MONGO_SET_COMPAT_VERSION_CMD=$$(cat <<-EOF
+				db.adminCommand({
+					setFeatureCompatibilityVersion: '$$SERIES_VERSION',
+					confirm: true
+				})
+			EOF
+			)
+		fi
+
+		wait_for_mongo
 
 		$(DOCKER_COMPOSE) exec mongo mongo --quiet --eval "quit($${MONGO_SET_COMPAT_VERSION_CMD}.ok ? 0 : 1)"
 	}
@@ -164,6 +180,18 @@ upgrade_mongodb:
 				start_mongodb 4.4.8
 				;;
 			4.4*)
+				echo "Upgrading MongoDB from 4.4-series to 5.0-series..."
+				start_mongodb 5.0.6
+				;;
+			5.0*)
+			 	echo "Upgrading MongoDB from 5.0-series to 6.0-series..."
+			 	start_mongodb 6.0.2
+			 	;;
+			6.0*)
+			 	echo "Upgrading MongoDB from 6.0-series to 7.0-series..."
+			 	start_mongodb 7.0.2
+			 	;;
+			7.0*)
 				echo "MongoDB upgrade successful!"
 				break
 				;;
