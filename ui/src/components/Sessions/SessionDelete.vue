@@ -2,7 +2,7 @@
   <div>
     <v-list-item
       @click="showDialog = true"
-      :disabled="notHasAuthorization"
+      :disabled="props.notHasAuthorization"
     >
       <div class="d-flex align-center">
         <div class="mr-2">
@@ -46,8 +46,8 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref } from "vue";
+<script setup lang="ts">
+import { PropType, ref } from "vue";
 import {
   INotificationsError,
   INotificationsSuccess,
@@ -55,48 +55,40 @@ import {
 import { useStore } from "../../store";
 import handleError from "../../utils/handleError";
 
-export default defineComponent({
-  props: {
-    uid: {
-      type: String,
-      required: true,
-    },
-    notHasAuthorization: {
-      type: Boolean,
-      default: false,
-    },
-    style: {
-      type: [String, Object],
-      default: undefined,
-    },
+const props = defineProps({
+  uid: {
+    type: String,
+    required: true,
   },
-  emits: ["update"],
-  setup(props, ctx) {
-    const showDialog = ref(false);
-    const store = useStore();
-
-    const deleteRecord = async () => {
-      try {
-        await store.dispatch("sessions/deleteSessionLogs", props.uid);
-        showDialog.value = false;
-        store.dispatch(
-          "snackbar/showSnackbarSuccessAction",
-          INotificationsSuccess.sessionRemoveRecord,
-        );
-        ctx.emit("update");
-      } catch (error: unknown) {
-        store.dispatch(
-          "snackbar/showSnackbarErrorAction",
-          INotificationsError.sessionRemoveRecord,
-        );
-        handleError(error);
-      }
-    };
-
-    return {
-      showDialog,
-      deleteRecord,
-    };
+  notHasAuthorization: {
+    type: Boolean,
+    required: true,
+  },
+  style: {
+    type: [String, Object] as PropType<string | object>,
+    default: undefined,
   },
 });
+
+const emit = defineEmits(["update"]);
+const showDialog = ref(false);
+const store = useStore();
+
+const deleteRecord = async () => {
+  try {
+    await store.dispatch("sessions/deleteSessionLogs", props.uid);
+    showDialog.value = false;
+    store.dispatch(
+      "snackbar/showSnackbarSuccessAction",
+      INotificationsSuccess.sessionRemoveRecord,
+    );
+    emit("update");
+  } catch (error: unknown) {
+    store.dispatch(
+      "snackbar/showSnackbarErrorAction",
+      INotificationsError.sessionRemoveRecord,
+    );
+    handleError(error);
+  }
+};
 </script>

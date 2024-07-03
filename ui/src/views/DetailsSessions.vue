@@ -39,6 +39,7 @@
                     :device="session.device"
                     :notHasAuthorization="!hasAuthorizationPlay()"
                     :recorded="session.authenticated && session.recorded"
+                    :is-active="session.active"
                     @update="refreshSessions"
                     data-test="sessionPlay-component"
                   />

@@ -2,10 +2,11 @@ import { Module } from "vuex";
 import * as apiSession from "../api/sessions";
 import { ISessions } from "@/interfaces/ISessions";
 import { State } from "..";
+import { ITerminalLog } from "@/interfaces/ITerminal";
 
 export interface SessionsState {
   sessions: Array<ISessions>;
-  session: ISessions;
+  session: Array<ITerminalLog>;
   numberSessions: number;
   page: number;
   perPage: number;
@@ -15,7 +16,7 @@ export const sessions: Module<SessionsState, State> = {
   namespaced: true,
   state: {
     sessions: [],
-    session: {} as ISessions,
+    session: {} as ITerminalLog[],
     numberSessions: 0,
     page: 1,
     perPage: 10,
@@ -39,6 +40,18 @@ export const sessions: Module<SessionsState, State> = {
       state.session = res.data;
     },
 
+    updateSession: (state, res) => {
+      const newSession = res.data;
+
+      Object.keys(newSession).forEach((key) => {
+        if (Object.prototype.hasOwnProperty.call(state.session, key)) {
+          state.session[key] = newSession[key];
+        } else {
+          state.session = { ...state.session, [key]: newSession[key] };
+        }
+      });
+    },
+
     setPagePerpage: (state, data) => {
       state.page = data.page;
       state.perPage = data.perPage;
@@ -55,13 +68,12 @@ export const sessions: Module<SessionsState, State> = {
     },
 
     clearObjectSession: (state) => {
-      state.session = {} as ISessions;
+      state.session = [];
     },
 
     removeRecordedSession: (state) => {
       state.session = {
         ...state.session,
-        recorded: false,
       };
     },
   },
@@ -108,6 +120,21 @@ export const sessions: Module<SessionsState, State> = {
     getLogSession: async (context, uid) => {
       try {
         const res = await apiSession.getLog(uid);
+        context.commit("setSession", res);
+      } catch (error) {
+        context.commit("clearObjectSession");
+        throw error;
+      }
+    },
+
+    updateLogSession: async (context, uid) => {
+      try {
+        const res = await apiSession.getLog(uid);
+
+        if (context.state.session.length === res.data.length) {
+          throw new Error();
+        }
+
         context.commit("setSession", res);
       } catch (error) {
         context.commit("clearObjectSession");

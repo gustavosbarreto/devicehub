@@ -47,8 +47,8 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, PropType, ref } from "vue";
+<script setup lang="ts">
+import { PropType, ref } from "vue";
 import {
   INotificationsError,
   INotificationsSuccess,
@@ -57,55 +57,46 @@ import { IDevice } from "../../interfaces/IDevice";
 import { useStore } from "../../store";
 import handleError from "../../utils/handleError";
 
-export default defineComponent({
-  props: {
-    uid: {
-      type: String,
-      required: true,
-    },
-    device: {
-      type: Object as PropType<IDevice>,
-      required: true,
-    },
-    notHasAuthorization: {
-      type: Boolean,
-      default: false,
-    },
-    style: {
-      type: [String, Object],
-      default: undefined,
-    },
+const props = defineProps({
+  uid: {
+    type: String,
+    required: true,
   },
-  emits: ["update"],
-  setup(props, ctx) {
-    const showDialog = ref(false);
-    const store = useStore();
-
-    const closeSession = async () => {
-      try {
-        await store.dispatch("sessions/close", {
-          uid: props.uid,
-          device_uid: props.device.uid,
-        });
-        showDialog.value = false;
-        store.dispatch(
-          "snackbar/showSnackbarSuccessAction",
-          INotificationsSuccess.sessionClose,
-        );
-        ctx.emit("update");
-      } catch (error: unknown) {
-        store.dispatch(
-          "snackbar/showSnackbarErrorAction",
-          INotificationsError.sessionClose,
-        );
-        handleError(error);
-      }
-    };
-
-    return {
-      showDialog,
-      closeSession,
-    };
+  device: {
+    type: Object as PropType<IDevice>,
+    required: true,
+  },
+  notHasAuthorization: {
+    type: Boolean,
+    required: true,
+  },
+  style: {
+    type: [String, Object],
+    default: undefined,
   },
 });
+const emit = defineEmits(["update"]);
+const showDialog = ref(false);
+const store = useStore();
+
+const closeSession = async () => {
+  try {
+    await store.dispatch("sessions/close", {
+      uid: props.uid,
+      device_uid: props.device.uid,
+    });
+    showDialog.value = false;
+    store.dispatch(
+      "snackbar/showSnackbarSuccessAction",
+      INotificationsSuccess.sessionClose,
+    );
+    emit("update");
+  } catch (error: unknown) {
+    store.dispatch(
+      "snackbar/showSnackbarErrorAction",
+      INotificationsError.sessionClose,
+    );
+    handleError(error);
+  }
+};
 </script>
