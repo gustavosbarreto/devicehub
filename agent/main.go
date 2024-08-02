@@ -109,7 +109,7 @@ func main() {
 				"tenant_id":          cfg.TenantID,
 				"server_address":     cfg.ServerAddress,
 				"preferred_hostname": cfg.PreferredHostname,
-			}).Info("Listening for connections")
+			}).Info("Listening for SSH connections")
 
 			// Disable check update in development mode
 			if AgentVersion != "latest" {
@@ -163,15 +163,39 @@ func main() {
 				}()
 			}
 
-			if err := ag.ListenSSH(ctx); err != nil {
-				log.WithError(err).WithFields(log.Fields{
-					"version":            AgentVersion,
-					"mode":               mode,
-					"tenant_id":          cfg.TenantID,
-					"server_address":     cfg.ServerAddress,
-					"preferred_hostname": cfg.PreferredHostname,
-				}).Fatal("Failed to listen for SSH connections")
-			}
+			go func() {
+				if err := ag.ListenSSH(ctx); err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"version":            AgentVersion,
+						"mode":               mode,
+						"tenant_id":          cfg.TenantID,
+						"server_address":     cfg.ServerAddress,
+						"preferred_hostname": cfg.PreferredHostname,
+					}).Fatal("Failed to listen for SSH connections")
+				}
+			}()
+
+			go func() {
+				if !cfg.VPN {
+					log.Info("VPN is disable")
+
+					return
+				}
+
+				log.Debug("VPN enabled")
+
+				for {
+					log.Info("VPN connected")
+
+					if err := ag.ConnectVPN(ctx); err != nil {
+						log.WithError(err).Error("Connect to VPN lost. Retrying in 10 seconds.")
+					}
+
+					time.Sleep(10 * time.Second)
+				}
+			}()
+
+			<-ctx.Done()
 
 			log.WithFields(log.Fields{
 				"version":            AgentVersion,
@@ -179,7 +203,7 @@ func main() {
 				"tenant_id":          cfg.TenantID,
 				"server_address":     cfg.ServerAddress,
 				"preferred_hostname": cfg.PreferredHostname,
-			}).Info("Stopped listening for connections")
+			}).Info("Agent Stopped")
 		},
 	}
 

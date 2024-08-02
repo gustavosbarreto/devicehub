@@ -50,6 +50,7 @@ import (
 	"github.com/shellhub-io/shellhub/pkg/agent/pkg/keygen"
 	"github.com/shellhub-io/shellhub/pkg/agent/pkg/sysinfo"
 	"github.com/shellhub-io/shellhub/pkg/agent/ssh"
+	"github.com/shellhub-io/shellhub/pkg/agent/vpn"
 	"github.com/shellhub-io/shellhub/pkg/api/client"
 	"github.com/shellhub-io/shellhub/pkg/envs"
 	"github.com/shellhub-io/shellhub/pkg/models"
@@ -114,6 +115,9 @@ type Config struct {
 	// MaxRetryConnectionTimeout specifies the maximum time, in seconds, that an agent will wait
 	// before attempting to reconnect to the ShellHub server. Default is 60 seconds.
 	MaxRetryConnectionTimeout int `env:"MAX_RETRY_CONNECTION_TIMEOUT,default=60" validate:"min=10,max=120"`
+
+	// Defines if the device will try to connect to the namespace's VPN.
+	VPN bool `env:"VPN,default=false"`
 }
 
 func LoadConfigFromEnv() (*Config, map[string]interface{}, error) {
@@ -163,6 +167,7 @@ type Agent struct {
 	serverInfo *models.Info
 	cli        client.Client
 	ssh        *ssh.SSH
+	vpn        *vpn.VPN
 	mode       Mode
 }
 
@@ -355,6 +360,12 @@ func (a *Agent) ListenSSH(ctx context.Context) error {
 	a.mode.Serve(a)
 
 	return a.ssh.Listen(ctx)
+}
+
+func (a *Agent) ConnectVPN(ctx context.Context) error {
+	a.vpn = vpn.NewVPN(a.cli, a.authData.Token)
+
+	return a.vpn.Connect(ctx)
 }
 
 // CheckUpdate gets the ShellHub's server version.

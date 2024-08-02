@@ -937,6 +937,7 @@ func TestEditNamespace(t *testing.T) {
 			tenantID:      "xxxxx",
 			namespaceName: "newname",
 			requiredMocks: func() {
+				envMock.On("Get", "SHELLHUB_ENTERPRISE").Return("false").Once()
 				mock.On("NamespaceEdit", ctx, "xxxxx", &models.NamespaceChanges{Name: "newname"}).
 					Return(store.ErrNoDocuments).
 					Once()
@@ -951,6 +952,7 @@ func TestEditNamespace(t *testing.T) {
 			tenantID:      "xxxxx",
 			namespaceName: "newname",
 			requiredMocks: func() {
+				envMock.On("Get", "SHELLHUB_ENTERPRISE").Return("false").Once()
 				mock.On("NamespaceEdit", ctx, "xxxxx", &models.NamespaceChanges{Name: "newname"}).
 					Return(errors.New("error")).
 					Once()
@@ -965,6 +967,7 @@ func TestEditNamespace(t *testing.T) {
 			namespaceName: "newName",
 			tenantID:      "xxxxx",
 			requiredMocks: func() {
+				envMock.On("Get", "SHELLHUB_ENTERPRISE").Return("false").Once()
 				mock.On("NamespaceEdit", ctx, "xxxxx", &models.NamespaceChanges{Name: "newname"}).
 					Return(nil).
 					Once()
@@ -991,6 +994,7 @@ func TestEditNamespace(t *testing.T) {
 			namespaceName: "newname",
 			tenantID:      "xxxxx",
 			requiredMocks: func() {
+				envMock.On("Get", "SHELLHUB_ENTERPRISE").Return("false").Once()
 				mock.On("NamespaceEdit", ctx, "xxxxx", &models.NamespaceChanges{Name: "newname"}).
 					Return(nil).
 					Once()
@@ -1000,6 +1004,7 @@ func TestEditNamespace(t *testing.T) {
 					Name:     "newname",
 				}
 
+				envMock.On("Get", "SHELLHUB_ENTERPRISE").Return("false").Once()
 				mock.On("NamespaceGet", ctx, "xxxxx", true).
 					Return(namespace, nil).
 					Once()

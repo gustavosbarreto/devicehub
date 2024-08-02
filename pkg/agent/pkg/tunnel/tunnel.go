@@ -83,6 +83,38 @@ func NewTunnel() *Tunnel {
 	return t
 }
 
+const ContextKeyHTTPConn string = "http-conn"
+
+// NewCustomTunnel creates a new [Tunnel] with the route to the connect, in a POST, and close, in a DELETE, actions.
+func NewCustomTunnel(connPath string, closePath string) *Tunnel {
+	router := echo.New()
+
+	t := &Tunnel{
+		router: router,
+		srv: &http.Server{
+			Handler: router,
+			ConnContext: func(ctx context.Context, c net.Conn) context.Context {
+				return context.WithValue(ctx, ContextKeyHTTPConn, c) //nolint:revive
+			},
+		},
+		ConnHandler: func(e echo.Context) error {
+			panic("connHandler can not be nil")
+		},
+		CloseHandler: func(e echo.Context) error {
+			panic("closeHandler can not be nil")
+		},
+	}
+
+	router.POST(connPath, func(e echo.Context) error {
+		return t.ConnHandler(e)
+	})
+	router.DELETE(closePath, func(e echo.Context) error {
+		return t.CloseHandler(e)
+	})
+
+	return t
+}
+
 // Listen to reverse listener.
 func (t *Tunnel) Listen(l *revdial.Listener) error {
 	return t.srv.Serve(l)

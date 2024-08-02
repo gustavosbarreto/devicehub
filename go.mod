@@ -27,8 +27,10 @@ require (
 	github.com/pkg/sftp v1.13.5
 	github.com/sethvargo/go-envconfig v0.9.0
 	github.com/sirupsen/logrus v1.9.3
+	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8
 	github.com/stretchr/testify v1.9.0
 	github.com/testcontainers/testcontainers-go/modules/redis v0.32.0
+	github.com/vishvananda/netlink v1.2.1-beta.2
 	golang.org/x/crypto v0.22.0
 	golang.org/x/sys v0.19.0
 )
@@ -96,6 +98,7 @@ require (
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
+	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
 	github.com/vmihailenco/go-tinylfu v0.2.2 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
