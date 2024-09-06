@@ -273,7 +273,7 @@ func initContainerAgent(ctx context.Context, cli *dockerclient.Client, container
 	// NOTICE(r): listing for connection and wait for a channel message to close the agent. It will receives
 	// this mensagem when something out of this goroutine send a `done`, what will cause the agent closes
 	// and no more connection to be allowed until it be started again.
-	if err := ag.Listen(ctx); err != nil {
+	if err := ag.ListenSSH(ctx); err != nil {
 		log.WithError(err).WithFields(log.Fields{
 			"id":             container.ID,
 			"identity":       cfg.PreferredIdentity,

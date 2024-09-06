@@ -10,7 +10,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	gliderssh "github.com/gliderlabs/ssh"
 	"github.com/shellhub-io/shellhub/pkg/agent/pkg/osauth"
-	"github.com/shellhub-io/shellhub/pkg/agent/server/modes"
+	"github.com/shellhub-io/shellhub/pkg/agent/ssh/modes"
 )
 
 var ErrUserNotFound = errors.New("user not found on context")

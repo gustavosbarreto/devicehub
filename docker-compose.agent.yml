@@ -19,6 +19,7 @@ services:
       - SHELLHUB_PRIVATE_KEY=/go/src/github.com/shellhub-io/shellhub/agent/shellhub.key
       - SHELLHUB_TENANT_ID=00000000-0000-4000-0000-000000000000
       - SHELLHUB_VERSION=${SHELLHUB_VERSION}
+      - SHELLHUB_VPN=${SHELLHUB_VPN}
       - SHELLHUB_LOG_LEVEL=${SHELLHUB_LOG_LEVEL}
       - SHELLHUB_LOG_FORMAT=${SHELLHUB_LOG_FORMAT}
     volumes:

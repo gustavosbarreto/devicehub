@@ -1,4 +1,4 @@
-//go:build !freebsd
+//go:build freebsd
 
 package host
 
@@ -7,7 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/shellhub-io/shellhub/pkg/agent/pkg/osauth"
-	"github.com/shellhub-io/shellhub/pkg/agent/server/modes/host/command"
+	"github.com/shellhub-io/shellhub/pkg/agent/ssh/modes/host/command"
 )
 
 func newShellCmd(deviceName string, username string, term string, envs []string) *exec.Cmd {
@@ -26,7 +26,7 @@ func newShellCmd(deviceName string, username string, term string, envs []string)
 		term = "xterm"
 	}
 
-	cmd := command.NewCmd(user, shell, term, deviceName, envs, shell, "--login")
+	cmd := command.NewCmd(user, shell, term, deviceName, envs, shell, "-")
 
 	return cmd
 }

@@ -439,6 +439,34 @@ func (_m *Client) UpdateSession(uid string, model *models.SessionUpdate) error {
 	return r0
 }
 
+// VPNDeleteNamespaceCache provides a mock function with given fields: tenant
+func (_m *Client) VPNDeleteNamespaceCache(tenant string) error {
+	ret := _m.Called(tenant)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(tenant)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// VPNStopRouter provides a mock function with given fields: tenant
+func (_m *Client) VPNStopRouter(tenant string) error {
+	ret := _m.Called(tenant)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(tenant)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 type mockConstructorTestingTNewClient interface {
 	mock.TestingT
 	Cleanup(func())

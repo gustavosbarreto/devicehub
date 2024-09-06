@@ -14,6 +14,16 @@ type Namespace struct {
 	DevicesCount int                `json:"devices_count" bson:"devices_count,omitempty"`
 	CreatedAt    time.Time          `json:"created_at" bson:"created_at"`
 	Billing      *Billing           `json:"billing" bson:"billing,omitempty"`
+	VPN          *VPN               `json:"vpn" bson:"vpn,omitempty"`
+}
+
+type VPN struct {
+	// Enable defines if the Virtual Private Network between devices are enabled.
+	Enable bool `json:"enable" bson:"enable"`
+	// Address defines the network address.
+	Address [4]byte `json:"address" bson:"address"`
+	// Mask defines the mask of the network.
+	Mask byte `json:"mask" bson:"mask"`
 }
 
 // HasMaxDevices checks if the namespace has a maximum number of devices.
@@ -53,9 +63,12 @@ type NamespaceSettings struct {
 }
 
 type NamespaceChanges struct {
-	Name                   string  `bson:"name,omitempty"`
-	SessionRecord          *bool   `bson:"settings.session_record,omitempty"`
-	ConnectionAnnouncement *string `bson:"settings.connection_announcement,omitempty"`
+	Name                   string   `bson:"name,omitempty"`
+	SessionRecord          *bool    `bson:"settings.session_record,omitempty"`
+	ConnectionAnnouncement *string  `bson:"settings.connection_announcement,omitempty"`
+	VPNEnable              *bool    `bson:"vpn.enable,omitempty"`
+	VPNAddress             *[4]byte `bson:"vpn.address,omitempty"`
+	VPNMask                *byte    `bson:"vpn.mask,omitempty"`
 }
 
 // default Announcement Message for the shellhub namespace

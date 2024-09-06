@@ -51,6 +51,14 @@ type NamespaceEdit struct {
 		SessionRecord          *bool   `json:"session_record" validate:"omitempty"`
 		ConnectionAnnouncement *string `json:"connection_announcement" validate:"omitempty,min=0,max=4096"`
 	} `json:"settings"`
+	VPN struct {
+		// Enable defines if the Virtual Private Network between devices are enabled.
+		Enable *bool `json:"enable"`
+		// Address defines the network address.
+		Address *[4]byte `json:"address"`
+		// Mask defines the mask of the network.
+		Mask *byte `json:"mask" validate:"omitempty,min=8,max=24"`
+	} `json:"vpn"`
 }
 
 type NamespaceAddMember struct {

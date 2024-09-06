@@ -6,9 +6,9 @@ import (
 
 	dockerclient "github.com/docker/docker/client"
 	"github.com/shellhub-io/shellhub/pkg/agent/pkg/sysinfo"
-	"github.com/shellhub-io/shellhub/pkg/agent/server"
-	"github.com/shellhub-io/shellhub/pkg/agent/server/modes/connector"
-	"github.com/shellhub-io/shellhub/pkg/agent/server/modes/host"
+	ssh "github.com/shellhub-io/shellhub/pkg/agent/ssh"
+	"github.com/shellhub-io/shellhub/pkg/agent/ssh/modes/connector"
+	"github.com/shellhub-io/shellhub/pkg/agent/ssh/modes/host"
 )
 
 type Info struct {
@@ -38,20 +38,20 @@ type HostMode struct{}
 var _ Mode = new(HostMode)
 
 func (m *HostMode) Serve(agent *Agent) {
-	agent.server = server.NewServer(
+	agent.ssh.Server = ssh.NewServer(
 		agent.cli,
 		&host.Mode{
 			Authenticator: *host.NewAuthenticator(agent.cli, agent.authData, agent.config.SingleUserPassword, &agent.authData.Name),
 			Sessioner:     *host.NewSessioner(&agent.authData.Name, make(map[string]*exec.Cmd)),
 		},
-		&server.Config{
+		&ssh.Config{
 			PrivateKey:        agent.config.PrivateKey,
 			KeepAliveInterval: agent.config.KeepAliveInterval,
-			Features:          server.LocalPortForwardFeature,
+			Features:          ssh.LocalPortForwardFeature,
 		},
 	)
 
-	agent.server.SetDeviceName(agent.authData.Name)
+	agent.ssh.Server.SetDeviceName(agent.authData.Name)
 }
 
 func (m *HostMode) GetInfo() (*Info, error) {
@@ -90,21 +90,21 @@ func (m *ConnectorMode) Serve(agent *Agent) {
 	// communication between the server and the agent when the container name on the host changes.  This information is
 	// saved inside the device's identity, avoiding significant changes in the current state of the agent.
 	// TODO: Evaluate if we can use another field than "MAC" to store the container ID.
-	agent.server = server.NewServer(
+	agent.ssh.Server = ssh.NewServer(
 		agent.cli,
 		&connector.Mode{
 			Authenticator: *connector.NewAuthenticator(agent.cli, m.cli, agent.authData, &agent.Identity.MAC),
 			Sessioner:     *connector.NewSessioner(&agent.Identity.MAC, m.cli),
 		},
-		&server.Config{
+		&ssh.Config{
 			PrivateKey:        agent.config.PrivateKey,
 			KeepAliveInterval: agent.config.KeepAliveInterval,
-			Features:          server.NoFeature,
+			Features:          ssh.NoFeature,
 		},
 	)
 
-	agent.server.SetContainerID(agent.Identity.MAC)
-	agent.server.SetDeviceName(agent.authData.Name)
+	agent.ssh.Server.SetContainerID(agent.Identity.MAC)
+	agent.ssh.Server.SetDeviceName(agent.authData.Name)
 }
 
 func (m *ConnectorMode) GetInfo() (*Info, error) {

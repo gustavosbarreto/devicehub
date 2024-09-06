@@ -3,11 +3,13 @@ package services
 import (
 	"context"
 	"errors"
+	"net"
 	"strings"
 
 	"github.com/shellhub-io/shellhub/api/store"
 	"github.com/shellhub-io/shellhub/api/store/mongo"
 	"github.com/shellhub-io/shellhub/pkg/api/authorizer"
+	"github.com/shellhub-io/shellhub/pkg/api/internalclient"
 	"github.com/shellhub-io/shellhub/pkg/api/requests"
 	"github.com/shellhub-io/shellhub/pkg/clock"
 	"github.com/shellhub-io/shellhub/pkg/envs"
@@ -204,11 +206,40 @@ func (s *service) EditNamespace(ctx context.Context, req *requests.NamespaceEdit
 		ConnectionAnnouncement: req.Settings.ConnectionAnnouncement,
 	}
 
+	if envs.IsEnterprise() {
+		changes.VPNEnable = req.VPN.Enable
+
+		if req.VPN.Address != nil {
+			address := *req.VPN.Address
+			ip := net.IPv4(address[0], address[1], address[2], address[3])
+
+			if ip.IsLoopback() || ip.IsUnspecified() {
+				return nil, NewErrNamespaceIPInvalid()
+			}
+
+			if !ip.IsPrivate() {
+				return nil, NewErrNamespaceIPNotPrivate()
+			}
+
+			changes.VPNAddress = &address
+		}
+
+		changes.VPNMask = req.VPN.Mask
+	}
+
 	if err := s.store.NamespaceEdit(ctx, req.Tenant, changes); err != nil {
 		switch {
 		case errors.Is(err, store.ErrNoDocuments):
 			return nil, NewErrNamespaceNotFound(req.Tenant, err)
 		default:
+			return nil, err
+		}
+	}
+
+	if envs.IsEnterprise() {
+		cli := s.client.(internalclient.Client)
+
+		if err := cli.VPNStopRouter(req.Tenant); err != nil {
 			return nil, err
 		}
 	}

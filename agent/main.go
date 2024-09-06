@@ -10,9 +10,10 @@ import (
 
 	"github.com/Masterminds/semver"
 	"github.com/shellhub-io/shellhub/pkg/agent"
-	"github.com/shellhub-io/shellhub/pkg/agent/connector"
 	"github.com/shellhub-io/shellhub/pkg/agent/pkg/selfupdater"
-	"github.com/shellhub-io/shellhub/pkg/agent/server/modes/host/command"
+	"github.com/shellhub-io/shellhub/pkg/agent/ssh"
+	"github.com/shellhub-io/shellhub/pkg/agent/ssh/connector"
+	"github.com/shellhub-io/shellhub/pkg/agent/ssh/modes/host/command"
 	"github.com/shellhub-io/shellhub/pkg/envs"
 	"github.com/shellhub-io/shellhub/pkg/loglevel"
 	log "github.com/sirupsen/logrus"
@@ -108,7 +109,7 @@ func main() {
 				"tenant_id":          cfg.TenantID,
 				"server_address":     cfg.ServerAddress,
 				"preferred_hostname": cfg.PreferredHostname,
-			}).Info("Listening for connections")
+			}).Info("Listening for SSH connections")
 
 			// Disable check update in development mode
 			if AgentVersion != "latest" {
@@ -162,15 +163,39 @@ func main() {
 				}()
 			}
 
-			if err := ag.Listen(ctx); err != nil {
-				log.WithError(err).WithFields(log.Fields{
-					"version":            AgentVersion,
-					"mode":               mode,
-					"tenant_id":          cfg.TenantID,
-					"server_address":     cfg.ServerAddress,
-					"preferred_hostname": cfg.PreferredHostname,
-				}).Fatal("Failed to listen for connections")
-			}
+			go func() {
+				if err := ag.ListenSSH(ctx); err != nil {
+					log.WithError(err).WithFields(log.Fields{
+						"version":            AgentVersion,
+						"mode":               mode,
+						"tenant_id":          cfg.TenantID,
+						"server_address":     cfg.ServerAddress,
+						"preferred_hostname": cfg.PreferredHostname,
+					}).Fatal("Failed to listen for SSH connections")
+				}
+			}()
+
+			go func() {
+				if !cfg.VPN {
+					log.Info("VPN is disable")
+
+					return
+				}
+
+				log.Debug("VPN enabled")
+
+				for {
+					log.Info("VPN connected")
+
+					if err := ag.ConnectVPN(ctx); err != nil {
+						log.WithError(err).Error("Connect to VPN lost. Retrying in 10 seconds.")
+					}
+
+					time.Sleep(10 * time.Second)
+				}
+			}()
+
+			<-ctx.Done()
 
 			log.WithFields(log.Fields{
 				"version":            AgentVersion,
@@ -178,7 +203,7 @@ func main() {
 				"tenant_id":          cfg.TenantID,
 				"server_address":     cfg.ServerAddress,
 				"preferred_hostname": cfg.PreferredHostname,
-			}).Info("Stopped listening for connections")
+			}).Info("Agent Stopped")
 		},
 	}
 
@@ -266,7 +291,7 @@ func main() {
 		Long: `Starts the SFTP server. This command is used internally by the agent and should not be used directly.
 It is initialized by the agent when a new SFTP session is created.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			agent.NewSFTPServer(command.SFTPServerMode(args[0]))
+			ssh.NewSFTPServer(command.SFTPServerMode(args[0]))
 		},
 	})
 

@@ -18,6 +18,7 @@ type Client interface {
 	sessionAPI
 	sshkeyAPI
 	firewallAPI
+	vpnAPI
 }
 
 type client struct {

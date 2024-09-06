@@ -130,6 +130,8 @@ var (
 	ErrAPIKeyDuplicated             = errors.New("APIKey duplicated", ErrLayer, ErrCodeDuplicated)
 	ErrAuthForbidden                = errors.New("user is authenticated but cannot access this resource", ErrLayer, ErrCodeForbidden)
 	ErrRoleInvalid                  = errors.New("role is invalid", ErrLayer, ErrCodeForbidden)
+	ErrNamespaceIPInvalid           = errors.New("ip is invalid", ErrLayer, ErrCodeForbidden)
+	ErrNamespaceIPNotPrivate        = errors.New("ip is not a private address", ErrLayer, ErrCodeForbidden)
 )
 
 func NewErrRoleInvalid() error {
@@ -470,4 +472,12 @@ func NewErrDeviceMaxDevicesReached(count int) error {
 
 func NewErrAuthForbidden() error {
 	return NewErrForbidden(ErrAuthForbidden, nil)
+}
+
+func NewErrNamespaceIPInvalid() error {
+	return NewErrInvalid(ErrNamespaceIPInvalid, nil, nil)
+}
+
+func NewErrNamespaceIPNotPrivate() error {
+	return NewErrInvalid(ErrNamespaceIPNotPrivate, nil, nil)
 }
