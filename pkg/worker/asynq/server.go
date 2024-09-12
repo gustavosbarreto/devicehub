@@ -3,6 +3,7 @@ package asynq
 import (
 	"runtime"
 	"time"
+	"fmt"
 
 	"github.com/hibiken/asynq"
 	"github.com/shellhub-io/shellhub/pkg/uuid"
@@ -90,15 +91,19 @@ func (s *server) HandleCron(spec worker.CronSpec, handler worker.CronHandler) {
 }
 
 func (s *server) Start() error {
+	fmt.Println("WORKER:: starting worker")
 	if err := s.setupAsynq(); err != nil {
+		fmt.Println("fail at setup : worker")
 		return err
 	}
 
 	if err := s.asynqSrv.Start(s.asynqMux); err != nil {
+		fmt.Println("WORKER:: fail at start async mux : worker")
 		return worker.ErrServerStartFailed
 	}
 
 	if err := s.asynqSch.Start(); err != nil {
+		fmt.Println("WORKER:: fail at start : worker")
 		return worker.ErrServerStartFailed
 	}
 
@@ -111,8 +116,10 @@ func (s *server) Shutdown() {
 }
 
 func (s *server) setupAsynq() error {
+	fmt.Println("WORKER:: start Setup Asynq")
 	addr, err := asynq.ParseRedisURI(s.redisURI)
 	if err != nil {
+		fmt.Println("WORKER:: ERROR at redis URI")
 		return err
 	}
 
@@ -130,17 +137,21 @@ func (s *server) setupAsynq() error {
 		},
 	)
 
+	fmt.Println("WORKER:: run tasks")
 	for _, t := range s.tasks {
 		s.asynqMux.HandleFunc(t.Pattern.String(), taskToAsynq(t.Handler))
 	}
 
+	fmt.Println("WORKER:: run cronjobs")
 	for _, c := range s.cronjobs {
 		s.asynqMux.HandleFunc(c.Identifier, cronToAsynq(c.Handler))
 		task := asynq.NewTask(c.Identifier, nil, asynq.Queue(cronQueue))
 		if _, err := s.asynqSch.Register(c.Spec.String(), task); err != nil {
+			fmt.Println("WORKER:: ERROR : register new task")
 			return worker.ErrHandleCronFailed
 		}
 	}
+	fmt.Println("WORKER:: ended setup asyncq")
 
 	return nil
 }
