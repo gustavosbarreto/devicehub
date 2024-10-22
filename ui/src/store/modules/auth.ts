@@ -13,17 +13,35 @@ export interface AuthState {
   email: string;
   id: string;
   role: string;
-  recoveryEmail: string,
+  recoveryEmail: string;
   secret: string;
   linkMfa: string;
   mfa: boolean;
-  recoveryCode: string,
+  recoveryCode: string;
   recoveryCodes: Array<number>;
   showRecoveryModal: boolean;
-  loginTimeout: number,
-  disableTimeout: number,
-  mfaToken: string,
+  loginTimeout: number;
+  disableTimeout: number;
+  mfaToken: string;
 }
+
+const localStorageSetItems = (data) => {
+  localStorage.setItem("token", data.token || "");
+  localStorage.setItem("user", data.user || "");
+  localStorage.setItem("name", data.name || "");
+  localStorage.setItem("tenant", data.tenant || "");
+  localStorage.setItem("email", data.email || "");
+  localStorage.setItem("id", data.id || "");
+  localStorage.setItem("role", data.role || "");
+  localStorage.setItem("mfa", data.mfa ? "true" : "false");
+  localStorage.setItem("recovery_email", data.recovery_email || "");
+};
+
+const localStorageRemoveItems = () => {
+  const keys = ["token", "user", "name", "tenant", "email", "id", "role", "mfa", "recovery_email"];
+  keys.forEach((key) => localStorage.removeItem(key));
+};
+
 export const auth: Module<AuthState, State> = {
   namespaced: true,
   state: {
@@ -74,277 +92,208 @@ export const auth: Module<AuthState, State> = {
     authRequest(state) {
       state.status = "loading";
     },
-
-    mfaEnabled(state, data) {
+    authSuccess(state, data) {
+      Object.assign(state, {
+        status: "success",
+        token: data.token,
+        user: data.user,
+        name: data.name,
+        tenant: data.tenant,
+        email: data.email,
+        id: data.id,
+        role: data.role,
+        mfa: data.mfa,
+        recoveryEmail: data.recovery_email,
+      });
+    },
+    authError(state) {
+      state.status = "error";
+    },
+    logout(state) {
+      Object.assign(state, {
+        status: "",
+        token: "",
+        name: "",
+        user: "",
+        tenant: "",
+        email: "",
+        role: "",
+        mfa: "",
+      });
+    },
+    mfaEnabled(state, token) {
       state.mfa = true;
       localStorage.setItem("mfa", "true");
-      state.mfaToken = data;
+      state.mfaToken = token;
     },
-
     mfaDisable(state) {
       state.mfa = false;
       localStorage.setItem("mfa", "false");
     },
-
-    mfaToken(state, data) {
-      state.token = data;
-    },
-
-    authSuccess(state, data) {
-      state.status = "success";
-      state.token = data.token;
-      state.user = data.user;
-      state.name = data.name;
-      state.tenant = data.tenant;
-      state.email = data.email;
-      state.id = data.id;
-      state.role = data.role;
-      state.mfa = data.mfa;
-      state.recoveryEmail = data.recovery_email;
-      localStorage.setItem("recovery_email", data.recovery_email);
-    },
-
-    authError(state) {
-      state.status = "error";
-    },
-
-    logout(state) {
-      state.status = "";
-      state.token = "";
-      state.name = "";
-      state.user = "";
-      state.tenant = "";
-      state.email = "";
-      state.role = "";
-      state.mfa = false;
-    },
-
     changeData(state, data) {
       state.name = data.name;
       state.user = data.username;
       state.email = data.email;
       state.recoveryEmail = data.recovery_email;
     },
-
     changeRecoveryEmail(state, data) {
       state.recoveryEmail = data;
     },
-
     mfaGenerateInfo(state, data) {
       state.linkMfa = data.link;
       state.secret = data.secret;
       state.recoveryCodes = data.recovery_codes;
     },
-
     userInfo(state, data) {
-      state.linkMfa = data.link;
-      state.secret = data.secret;
-      state.recoveryCodes = data.codes;
-      state.mfa = data.mfa;
-      state.token = data.token;
-      state.user = data.user;
-      state.name = data.name;
-      state.tenant = data.tenant;
-      state.email = data.email;
-      state.id = data.id;
-      state.role = data.role;
-      state.mfa = data.mfa;
-      state.recoveryEmail = data.recovery_email;
-      localStorage.setItem("recovery_email", data.recovery_email);
+      Object.assign(state, {
+        linkMfa: data.link,
+        secret: data.secret,
+        recoveryCodes: data.codes,
+        mfa: data.mfa,
+        token: data.token,
+        user: data.user,
+        name: data.name,
+        tenant: data.tenant,
+        email: data.email,
+        id: data.id,
+        role: data.role,
+        recoveryEmail: data.recovery_email,
+      });
     },
-
-    accountRecoveryHelper(state) {
-      state.showRecoveryModal = !state.showRecoveryModal;
-    },
-
-    setLoginTimeout: (state, data) => {
-      state.loginTimeout = data;
-    },
-
-    setDisableTimeout: (state, data) => {
-      state.disableTimeout = data;
-    },
-
     setToken(state, data) {
       state.token = data;
     },
-
-    setRecoveryCode: (state, data) => {
-      state.recoveryCode = data;
+    accountRecoveryHelper(state) {
+      state.showRecoveryModal = !state.showRecoveryModal;
+    },
+    setLoginTimeout(state, timeout) {
+      state.loginTimeout = timeout;
+    },
+    setDisableTimeout(state, timeout) {
+      state.disableTimeout = timeout;
+    },
+    setRecoveryCode(state, code) {
+      state.recoveryCode = code;
     },
   },
 
   actions: {
-    async login(context, user: IUserLogin) {
-      context.commit("authRequest");
+    async login({ commit }, user: IUserLogin) {
+      commit("authRequest");
       try {
         const resp = await apiAuth.login(user);
-
-        localStorage.setItem("token", resp.data.token || "");
-        localStorage.setItem("user", resp.data.user || "");
-        localStorage.setItem("name", resp.data.name || "");
-        localStorage.setItem("tenant", resp.data.tenant || "");
-        localStorage.setItem("email", resp.data.email || "");
-        localStorage.setItem("id", resp.data.id || "");
-        localStorage.setItem("namespacesWelcome", JSON.stringify({}));
-        localStorage.setItem("role", resp.data.role || "");
-        localStorage.setItem("mfa", "false");
-        context.commit("authSuccess", resp.data);
+        localStorageSetItems(resp.data);
+        commit("authSuccess", resp.data);
       } catch (error: unknown) {
         const typedErr = error as AxiosError;
         if (typedErr.response?.headers["x-mfa-token"]) {
           localStorage.setItem("mfa", "true");
-          context.commit("mfaEnabled", typedErr.response?.headers["x-mfa-token"]);
+          commit("mfaEnabled", typedErr.response?.headers["x-mfa-token"]);
           return;
         }
-        context.commit("setLoginTimeout", typedErr.response?.headers["x-account-lockout"]);
-        context.commit("authError");
+        commit("setLoginTimeout", typedErr.response?.headers["x-account-lockout"]);
+        commit("authError");
         throw error;
       }
     },
 
-    async loginToken(context, token) {
-      context.commit("authRequest");
-
+    async loginToken({ commit }, token) {
+      commit("authRequest");
       localStorage.setItem("token", token);
-
       try {
         const resp = await apiAuth.info();
-
-        localStorage.setItem("token", resp.data.token || "");
-        localStorage.setItem("user", resp.data.user ?? "");
-        localStorage.setItem("name", resp.data.name ?? "");
-        localStorage.setItem("tenant", resp.data.tenant ?? "");
-        localStorage.setItem("id", resp.data.id ?? "");
-        localStorage.setItem("email", resp.data.email ?? "");
-        localStorage.setItem("namespacesWelcome", JSON.stringify({}));
-        localStorage.setItem("role", resp.data.role ?? "");
-        context.commit("authSuccess", resp.data);
+        localStorageSetItems(resp.data);
+        commit("authSuccess", resp.data);
       } catch (error) {
-        context.commit("authError");
+        commit("authError");
       }
     },
 
-    async disableMfa(context, data) {
+    async disableMfa({ commit }, data) {
       await apiAuth.disableMfa(data);
-      context.commit("mfaDisable");
+      commit("mfaDisable");
     },
 
-    async enableMfa(context, data) {
+    async enableMfa({ commit }, data) {
       const resp = await apiAuth.enableMFA(data);
-
       if (resp.status === 200) {
-        context.commit("mfaEnabled");
+        commit("mfaEnabled");
       }
     },
 
-    async validateMfa(context, data) {
+    async validateMfa({ commit }, data) {
       const resp = await apiAuth.validateMFA(data);
-
       if (resp.status === 200) {
-        localStorage.setItem("user", resp.data.user || "");
-        localStorage.setItem("name", resp.data.name || "");
-        localStorage.setItem("tenant", resp.data.tenant || "");
-        localStorage.setItem("email", resp.data.email || "");
-        localStorage.setItem("id", resp.data.id || "");
-        localStorage.setItem("namespacesWelcome", JSON.stringify({}));
-        localStorage.setItem("role", resp.data.role || "");
-        localStorage.setItem("token", resp.data.token || "");
-        localStorage.setItem("mfa", "true");
-        context.commit("authSuccess", resp.data);
+        localStorageSetItems(resp.data);
+        commit("authSuccess", resp.data);
       }
     },
 
-    async generateMfa(context) {
+    async generateMfa({ commit }) {
       const resp = await apiAuth.generateMfa();
       if (resp.status === 200) {
-        context.commit("mfaGenerateInfo", resp.data);
+        commit("mfaGenerateInfo", resp.data);
       }
     },
 
-    async getUserInfo(context) {
+    async getUserInfo({ commit }) {
       try {
         const resp = await apiAuth.info();
         if (resp.status === 200) {
-          context.commit("userInfo", resp.data);
+          commit("userInfo", resp.data);
         }
       } catch (error) {
-        context.commit("authError");
+        commit("authError");
       }
     },
 
-    async recoverLoginMfa(context, data) {
+    async recoverLoginMfa({ commit }, data) {
       const resp = await apiAuth.validateRecoveryCodes(data);
       if (resp.status === 200) {
-        localStorage.setItem("user", resp.data.user || "");
-        localStorage.setItem("name", resp.data.name || "");
-        localStorage.setItem("tenant", resp.data.tenant || "");
-        localStorage.setItem("email", resp.data.email || "");
-        localStorage.setItem("id", resp.data.id || "");
-        localStorage.setItem("namespacesWelcome", JSON.stringify({}));
-        localStorage.setItem("role", resp.data.role || "");
-        localStorage.setItem("token", resp.data.token || "");
-        localStorage.setItem("mfa", "true");
-        context.commit("authSuccess", resp.data);
-        context.commit("mfaToken", resp.data.token);
-        context.commit("accountRecoveryHelper");
-        context.commit("setDisableTimeout", resp.headers["x-expires-at"]);
+        localStorageSetItems(resp.data);
+        commit("authSuccess", resp.data);
+        commit("setToken", resp.data.token);
+        commit("accountRecoveryHelper");
+        commit("setDisableTimeout", resp.headers["x-expires-at"]);
       }
     },
 
-    async reqResetMfa(context, data) {
+    async reqResetMfa(_, data) {
       await apiAuth.reqResetMfa(data);
     },
 
-    async resetMfa(context, data) {
+    async resetMfa({ commit }, data) {
       const resp = await apiAuth.resetMfa(data);
-      localStorage.setItem("token", resp.data.token || "");
-      localStorage.setItem("user", resp.data.user || "");
-      localStorage.setItem("name", resp.data.name || "");
-      localStorage.setItem("tenant", resp.data.tenant || "");
-      localStorage.setItem("email", resp.data.email || "");
-      localStorage.setItem("id", resp.data.id || "");
-      localStorage.setItem("namespacesWelcome", JSON.stringify({}));
-      localStorage.setItem("role", resp.data.role || "");
-      localStorage.setItem("mfa", "false");
-      context.commit("authSuccess", resp.data);
+      localStorageSetItems(resp.data);
+      commit("authSuccess", resp.data);
     },
 
-    logout(context) {
-      context.commit("logout");
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("tenant");
-      localStorage.removeItem("namespacesWelcome");
-      localStorage.removeItem("noNamespace");
-      localStorage.removeItem("email");
-      localStorage.removeItem("id");
-      localStorage.removeItem("name");
-      localStorage.removeItem("role");
-      localStorage.removeItem("mfa");
-      localStorage.removeItem("recovery_email");
+    logout({ commit }) {
+      commit("logout");
+      localStorageRemoveItems();
     },
 
-    changeUserData(context, data) {
+    changeUserData({ commit }, data) {
       localStorage.setItem("name", data.name);
       localStorage.setItem("user", data.username);
       localStorage.setItem("email", data.email);
       localStorage.setItem("recovery_email", data.recoveryEmail);
-      context.commit("changeData", data);
+      commit("changeData", data);
     },
 
-    changeRecoveryEmail(context, data) {
+    changeRecoveryEmail({ commit }, data) {
       localStorage.setItem("recovery_email", data);
-      context.commit("changeRecoveryEmail", data);
+      commit("changeRecoveryEmail", data);
     },
 
-    setShowWelcomeScreen(context, tenantID: string) {
-      localStorage.setItem("namespacesWelcome", JSON.stringify(
-        Object.assign(
-          JSON.parse(localStorage.getItem("namespacesWelcome") || "") || {},
-          { ...{ [tenantID]: true } },
-        ),
-      ));
+    setShowWelcomeScreen(_, tenantID: string) {
+      const namespacesWelcome = JSON.parse(localStorage.getItem("namespacesWelcome") || "{}");
+      namespacesWelcome[tenantID] = true;
+      localStorage.setItem("namespacesWelcome", JSON.stringify(namespacesWelcome));
+    },
+
+    setDisableTokenTimeout({ commit }, timeout) {
+      commit("setDisableTimeout", timeout);
     },
   },
 };
