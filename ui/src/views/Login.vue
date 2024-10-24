@@ -161,10 +161,9 @@ onMounted(async () => {
   }
   loginToken.value = true;
 
-  await store.dispatch("stats/clear");
-  await store.dispatch("namespaces/clearNamespaceList");
   await store.dispatch("auth/logout");
   await store.dispatch("auth/loginToken", route.query.token);
+  router.push("/");
 });
 
 const login = async () => {

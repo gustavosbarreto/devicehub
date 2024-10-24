@@ -1,6 +1,7 @@
 import { Module } from "vuex";
 import { AxiosError } from "axios";
 import * as apiAuth from "../api/auth";
+import { configuration } from "@/api/http";
 import { IUserLogin } from "@/interfaces/IUserLogin";
 import { State } from "..";
 
@@ -206,7 +207,7 @@ export const auth: Module<AuthState, State> = {
     async loginToken(context, token) {
       context.commit("authRequest");
 
-      localStorage.setItem("token", token);
+      configuration.accessToken = token;
 
       try {
         const resp = await apiAuth.info();
