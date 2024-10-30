@@ -109,8 +109,8 @@ services:
       test: "curl -f -k -L http://gateway/healthcheck || exit 1"
       interval: 30s
       start_period: 10s
-  cli:
-    image: shellhubio/cli:${SHELLHUB_VERSION}
+  adm:
+    image: shellhubio/adm:${SHELLHUB_VERSION}
     stop_signal: SIGKILL
     command: /bin/sleep infinity
     environment:

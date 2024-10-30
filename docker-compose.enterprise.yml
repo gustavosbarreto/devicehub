@@ -8,8 +8,8 @@ services:
   gateway:
     image: registry.infra.ossystems.io/cache/shellhubio/gateway:${SHELLHUB_VERSION}
 
-  cli:
-    image: registry.infra.ossystems.io/cache/shellhubio/cli:${SHELLHUB_VERSION}
+  adm:
+    image: registry.infra.ossystems.io/cache/shellhubio/adm:${SHELLHUB_VERSION}
 
   mongo:
     image: registry.infra.ossystems.io/cache/mongo:4.4.8

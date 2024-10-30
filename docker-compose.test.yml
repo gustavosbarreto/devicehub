@@ -24,10 +24,10 @@ services:
       retries: 20
     ports: []
   cli:
-    image: cli:test
+    image: adm:test
     build:
       context: .
-      dockerfile: cli/Dockerfile
+      dockerfile: adm/Dockerfile
       target: production 
     ports: []
   gateway:

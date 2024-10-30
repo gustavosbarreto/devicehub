@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [api, agent, pkg, ssh, ui, cli]
+        project: [api, agent, pkg, ssh, ui, adm]
         include:
           - project: api
             extra_args: ""
@@ -33,7 +33,7 @@ jobs:
           - project: ui
             extra_args: ""
             lint_args: ""
-          - project: cli
+          - project: adm
             extra_args: ""
             lint_args: ""
           - project: tests
@@ -58,7 +58,7 @@ jobs:
               - 'agent/**'
               - 'pkg/**'
               - 'ssh/**'
-              - 'cli/**'
+              - 'adm/**'
               - 'tests/**'
 
       - name: Set up Go 1.x [Go]

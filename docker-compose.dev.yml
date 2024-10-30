@@ -60,17 +60,17 @@ services:
     environment:
       - SHELLHUB_VERSION=latest
       - SHELLHUB_ENV=${SHELLHUB_ENV}
-  cli:
-    image: cli
+  adm:
+    image: adm
     build:
       context: .
-      dockerfile: cli/Dockerfile
+      dockerfile: adm/Dockerfile
       target: development
     environment:
       - SHELLHUB_ENTERPRISE=${SHELLHUB_ENTERPRISE}
       - SHELLHUB_CLOUD=${SHELLHUB_CLOUD}
     volumes:
-      - ./cli:/go/src/github.com/shellhub-io/shellhub/cli
+      - ./adm:/go/src/github.com/shellhub-io/shellhub/adm
       - ./pkg:/go/src/github.com/shellhub-io/shellhub/pkg
       - ./api:/go/src/github.com/shellhub-io/shellhub/api
       - ./.golangci.yaml:/.golangci.yaml
