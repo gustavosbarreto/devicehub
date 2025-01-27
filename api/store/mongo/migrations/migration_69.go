@@ -83,7 +83,6 @@ var migration69 = migrate.Migration{
 
 				return nil, err
 			})
-
 			if err != nil {
 				return err
 			}

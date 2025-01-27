@@ -7,18 +7,20 @@ import (
 )
 
 type TagsService interface {
-	GetTags(ctx context.Context, tenant string) ([]string, int, error)
+	GetTags(ctx context.Context, tenant string) ([]models.Tags, int, error)
 	RenameTag(ctx context.Context, tenant string, oldTag string, newTag string) error
 	DeleteTag(ctx context.Context, tenant string, tag string) error
 }
 
-func (s *service) GetTags(ctx context.Context, tenant string) ([]string, int, error) {
+func (s *service) GetTags(ctx context.Context, tenant string) ([]models.Tags, int, error) {
 	namespace, err := s.store.NamespaceGet(ctx, tenant)
 	if err != nil || namespace == nil {
 		return nil, 0, NewErrNamespaceNotFound(tenant, err)
 	}
 
-	return s.store.TagsGet(ctx, namespace.TenantID)
+	tags, count, err := s.store.TagsGet(ctx, namespace.TenantID)
+
+	return tags, int(count), err
 }
 
 func (s *service) RenameTag(ctx context.Context, tenant string, oldTag string, newTag string) error {
@@ -31,11 +33,11 @@ func (s *service) RenameTag(ctx context.Context, tenant string, oldTag string, n
 		return NewErrTagEmpty(tenant, err)
 	}
 
-	if !contains(tags, oldTag) {
+	if !containsTags(tags, oldTag) {
 		return NewErrTagNotFound(oldTag, nil)
 	}
 
-	if contains(tags, newTag) {
+	if containsTags(tags, newTag) {
 		return NewErrTagDuplicated(newTag, nil)
 	}
 
@@ -59,7 +61,7 @@ func (s *service) DeleteTag(ctx context.Context, tenant string, tag string) erro
 		return NewErrTagEmpty(tenant, err)
 	}
 
-	if !contains(tags, tag) {
+	if !containsTags(tags, tag) {
 		return NewErrTagNotFound(tag, nil)
 	}
 

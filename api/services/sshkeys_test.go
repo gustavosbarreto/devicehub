@@ -295,7 +295,7 @@ func TestUpdatePublicKeys(t *testing.T) {
 				},
 			},
 			requiredMocks: func() {
-				mock.On("TagsGet", ctx, "tenant").Return([]string{}, 0, errors.New("error", "", 0)).Once()
+				mock.On("TagsGet", ctx, "tenant").Return([]models.Tags{}, int64(0), errors.New("error", "", 0)).Once()
 			},
 			expected: Expected{nil, NewErrTagEmpty("tenant", errors.New("error", "", 0))},
 		},
@@ -309,7 +309,19 @@ func TestUpdatePublicKeys(t *testing.T) {
 				},
 			},
 			requiredMocks: func() {
-				mock.On("TagsGet", ctx, "tenant").Return([]string{"tag1", "tag4"}, 2, nil).Once()
+				mock.On("TagsGet", ctx, "tenant").
+					Return([]models.Tags{
+						{
+							Name:   "tag1",
+							Color:  "",
+							Tenant: "tenant",
+						},
+						{
+							Name:   "tag4",
+							Color:  "",
+							Tenant: "tenant",
+						},
+					}, int64(2), nil).Once()
 			},
 			expected: Expected{nil, NewErrTagNotFound("tag2", nil)},
 		},
@@ -331,7 +343,19 @@ func TestUpdatePublicKeys(t *testing.T) {
 					},
 				}
 
-				mock.On("TagsGet", ctx, "tenant").Return([]string{"tag1", "tag2"}, 2, nil).Once()
+				mock.On("TagsGet", ctx, "tenant").
+					Return([]models.Tags{
+						{
+							Name:   "tag1",
+							Color:  "",
+							Tenant: "tenant",
+						},
+						{
+							Name:   "tag2",
+							Color:  "",
+							Tenant: "tenant",
+						},
+					}, int64(2), nil).Once()
 				mock.On("PublicKeyUpdate", ctx, "fingerprint", "tenant", &model).Return(nil, errors.New("error", "", 0)).Once()
 			},
 			expected: Expected{nil, errors.New("error", "", 0)},
@@ -362,7 +386,15 @@ func TestUpdatePublicKeys(t *testing.T) {
 					},
 				}
 
-				mock.On("TagsGet", ctx, "tenant").Return([]string{"tag1", "tag2"}, 2, nil).Once()
+				mock.On("TagsGet", ctx, "tenant").
+					Return([]models.Tags{
+						{
+							Name: "tag1",
+						},
+						{
+							Name: "tag2",
+						},
+					}, int64(2), nil).Once()
 				mock.On("PublicKeyUpdate", ctx, "fingerprint", "tenant", &model).Return(keyUpdateWithTagsModel, nil).Once()
 			},
 			expected: Expected{&models.PublicKey{
@@ -581,7 +613,7 @@ func TestCreatePublicKeys(t *testing.T) {
 				},
 			},
 			requiredMocks: func() {
-				mock.On("TagsGet", ctx, "tenant").Return([]string{}, 0, errors.New("error", "", 0)).Once()
+				mock.On("TagsGet", ctx, "tenant").Return([]models.Tags{}, int64(0), errors.New("error", "", 0)).Once()
 			},
 			expected: Expected{nil, NewErrTagEmpty("tenant", errors.New("error", "", 0))},
 		},
@@ -597,7 +629,18 @@ func TestCreatePublicKeys(t *testing.T) {
 				},
 			},
 			requiredMocks: func() {
-				mock.On("TagsGet", ctx, "tenant").Return([]string{"tag1", "tag4"}, 2, nil).Once()
+				mock.On("TagsGet", ctx, "tenant").Return([]models.Tags{
+					{
+						Name:   "tag1",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag4",
+						Color:  "",
+						Tenant: "tenant",
+					},
+				}, int64(2), nil).Once()
 			},
 			expected: Expected{nil, NewErrTagNotFound("tag2", nil)},
 		},
@@ -868,7 +911,18 @@ func TestCreatePublicKeys(t *testing.T) {
 					},
 				}
 
-				mock.On("TagsGet", ctx, keyWithTags.TenantID).Return([]string{"tag1", "tag2"}, 2, nil).Once()
+				mock.On("TagsGet", ctx, keyWithTags.TenantID).Return([]models.Tags{
+					{
+						Name:   "tag1",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag2",
+						Color:  "",
+						Tenant: "tenant",
+					},
+				}, int64(2), nil).Once()
 				mock.On("PublicKeyGet", ctx, keyWithTags.Fingerprint, "tenant").Return(nil, nil).Once()
 				mock.On("PublicKeyCreate", ctx, &keyWithTagsModel).Return(errors.New("error", "", 0)).Once()
 			},
@@ -907,7 +961,18 @@ func TestCreatePublicKeys(t *testing.T) {
 					},
 				}
 
-				mock.On("TagsGet", ctx, keyWithTags.TenantID).Return([]string{"tag1", "tag2"}, 2, nil).Once()
+				mock.On("TagsGet", ctx, keyWithTags.TenantID).Return([]models.Tags{
+					{
+						Name:   "tag1",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag2",
+						Color:  "",
+						Tenant: "tenant",
+					},
+				}, int64(2), nil).Once()
 				mock.On("PublicKeyGet", ctx, keyWithTags.Fingerprint, "tenant").Return(nil, nil).Once()
 				mock.On("PublicKeyCreate", ctx, &keyWithTagsModel).Return(nil).Once()
 			},

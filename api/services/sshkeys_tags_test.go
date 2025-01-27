@@ -82,20 +82,30 @@ func TestAddPublicKeyTag(t *testing.T) {
 				namespace := &models.Namespace{
 					TenantID: "tenant",
 				}
-				tags := []string{"tag1", "tag2"}
+				tagsNames := []string{
+					"tag-1", "tag-2",
+				}
+				tags := []models.Tags{
+					{
+						Name: "tag-1",
+					},
+					{
+						Name: "tag-2",
+					},
+				}
 				key := &models.PublicKey{
 					TenantID:    "tenant",
 					Fingerprint: "fingerprint",
 					PublicKeyFields: models.PublicKeyFields{
 						Filter: models.PublicKeyFilter{
-							Tags: tags,
+							Tags: tagsNames,
 						},
 					},
 				}
 
 				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
 				mock.On("PublicKeyGet", ctx, "fingerprint", "tenant").Return(key, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(tags, len(tags), nil).Once()
+				mock.On("TagsGet", ctx, "tenant").Return(tags, int64(len(tags)), nil).Once()
 			},
 			expected: NewErrTagNotFound("tag", nil),
 		},
@@ -108,7 +118,24 @@ func TestAddPublicKeyTag(t *testing.T) {
 				namespace := &models.Namespace{
 					TenantID: "tenant",
 				}
-				tags := []string{"tag", "tag3", "tag6"}
+				// tagsNames := []string{"tag", "tag3", "tag6"}
+				tags := []models.Tags{
+					{
+						Name:   "tag",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag3",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag6",
+						Color:  "",
+						Tenant: "tenant",
+					},
+				}
 				key := &models.PublicKey{
 					TenantID:    "tenant",
 					Fingerprint: "fingerprint",
@@ -120,7 +147,7 @@ func TestAddPublicKeyTag(t *testing.T) {
 				}
 				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
 				mock.On("PublicKeyGet", ctx, "fingerprint", "tenant").Return(key, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(tags, len(tags), nil).Once()
+				mock.On("TagsGet", ctx, "tenant").Return(tags, int64(len(tags)), nil).Once()
 				mock.On("PublicKeyPushTag", ctx, "tenant", "fingerprint", "tag").Return(errors.New("error", "", 0)).Once()
 			},
 			expected: errors.New("error", "", 0),
@@ -134,7 +161,23 @@ func TestAddPublicKeyTag(t *testing.T) {
 				namespace := &models.Namespace{
 					TenantID: "tenant",
 				}
-				tags := []string{"tag", "tag3", "tag6"}
+				tags := []models.Tags{
+					{
+						Name:   "tag",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag3",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag6",
+						Color:  "",
+						Tenant: "tenant",
+					},
+				}
 				key := &models.PublicKey{
 					TenantID:    "tenant",
 					Fingerprint: "fingerprint",
@@ -146,7 +189,7 @@ func TestAddPublicKeyTag(t *testing.T) {
 				}
 				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
 				mock.On("PublicKeyGet", ctx, "fingerprint", "tenant").Return(key, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(tags, len(tags), nil).Once()
+				mock.On("TagsGet", ctx, "tenant").Return(tags, int64(len(tags)), nil).Once()
 				mock.On("PublicKeyPushTag", ctx, "tenant", "fingerprint", "tag").Return(nil).Once()
 			},
 			expected: nil,
@@ -360,7 +403,23 @@ func TestUpdatePublicKeyTags(t *testing.T) {
 				namespace := &models.Namespace{
 					TenantID: "tenant",
 				}
-				tags := []string{"tag4", "tag5", "tag7", "tag5"}
+				tags := []models.Tags{
+					{
+						Name:   "tag4",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag5",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag7",
+						Color:  "",
+						Tenant: "tenant",
+					},
+				}
 				key := &models.PublicKey{
 					TenantID:    "tenant",
 					Fingerprint: "fingerprint",
@@ -373,7 +432,7 @@ func TestUpdatePublicKeyTags(t *testing.T) {
 
 				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
 				mock.On("PublicKeyGet", ctx, "fingerprint", "tenant").Return(key, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(tags, len(tags), nil).Once()
+				mock.On("TagsGet", ctx, "tenant").Return(tags, int64(len(tags)), nil).Once()
 			},
 			expected: NewErrTagNotFound("tag2", nil),
 		},
@@ -386,7 +445,28 @@ func TestUpdatePublicKeyTags(t *testing.T) {
 				namespace := &models.Namespace{
 					TenantID: "tenant",
 				}
-				tags := []string{"tag1", "tag2", "tag3", "tag4"}
+				tags := []models.Tags{
+					{
+						Name:   "tag1",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag2",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag3",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag4",
+						Color:  "",
+						Tenant: "tenant",
+					},
+				}
 				key := &models.PublicKey{
 					TenantID:    "tenant",
 					Fingerprint: "fingerprint",
@@ -399,7 +479,7 @@ func TestUpdatePublicKeyTags(t *testing.T) {
 
 				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
 				mock.On("PublicKeyGet", ctx, "fingerprint", "tenant").Return(key, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(tags, len(tags), nil).Once()
+				mock.On("TagsGet", ctx, "tenant").Return(tags, int64(len(tags)), nil).Once()
 				mock.On("PublicKeySetTags", ctx, "tenant", "fingerprint", []string{"tag1", "tag2", "tag3"}).Return(int64(0), int64(0), errors.New("error", "", 0)).Once()
 			},
 			expected: errors.New("error", "", 0),
@@ -413,7 +493,28 @@ func TestUpdatePublicKeyTags(t *testing.T) {
 				namespace := &models.Namespace{
 					TenantID: "tenant",
 				}
-				tags := []string{"tag1", "tag2", "tag3", "tag4"}
+				tags := []models.Tags{
+					{
+						Name:   "tag1",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag2",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag3",
+						Color:  "",
+						Tenant: "tenant",
+					},
+					{
+						Name:   "tag4",
+						Color:  "",
+						Tenant: "tenant",
+					},
+				}
 				key := &models.PublicKey{
 					TenantID:    "tenant",
 					Fingerprint: "fingerprint",
@@ -426,7 +527,7 @@ func TestUpdatePublicKeyTags(t *testing.T) {
 
 				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
 				mock.On("PublicKeyGet", ctx, "fingerprint", "tenant").Return(key, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(tags, len(tags), nil).Once()
+				mock.On("TagsGet", ctx, "tenant").Return(tags, int64(len(tags)), nil).Once()
 				mock.On("PublicKeySetTags", ctx, "tenant", "fingerprint", []string{"tag1", "tag2", "tag3"}).Return(int64(1), int64(1), nil).Once()
 			},
 			expected: nil,

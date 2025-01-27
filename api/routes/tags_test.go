@@ -10,6 +10,7 @@ import (
 
 	"github.com/shellhub-io/shellhub/api/services/mocks"
 	"github.com/shellhub-io/shellhub/pkg/api/authorizer"
+	"github.com/shellhub-io/shellhub/pkg/models"
 	"github.com/stretchr/testify/assert"
 	gomock "github.com/stretchr/testify/mock"
 )
@@ -26,7 +27,18 @@ func TestGetTags(t *testing.T) {
 			title:          "success when try to get an existing tag",
 			expectedStatus: http.StatusOK,
 			requiredMocks: func() {
-				mock.On("GetTags", gomock.Anything, "").Return([]string{"tag1", "tag2"}, 2, nil)
+				mock.On("GetTags", gomock.Anything, "").Return([]models.Tags{
+					{
+						Name:   "tag-1",
+						Color:  "#ff0000",
+						Tenant: "00000000-0000-4000-0000-000000000000",
+					},
+					{
+						Name:   "tag-2",
+						Color:  "green",
+						Tenant: "00000000-0000-4000-0000-000000000000",
+					},
+				}, 2, nil)
 			},
 		},
 	}

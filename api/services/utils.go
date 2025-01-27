@@ -3,8 +3,10 @@ package services
 import (
 	"crypto/rsa"
 	"os"
+	"slices"
 
 	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/shellhub-io/shellhub/pkg/models"
 )
 
 func LoadKeys() (*rsa.PrivateKey, *rsa.PublicKey, error) {
@@ -31,12 +33,14 @@ func LoadKeys() (*rsa.PrivateKey, *rsa.PublicKey, error) {
 	return privKey, pubKey, nil
 }
 
-func contains(list []string, item string) bool {
-	for _, i := range list {
-		if i == item {
-			return true
-		}
-	}
+func containsTags(list []models.Tags, item string) bool {
+	return slices.ContainsFunc(list, func(n models.Tags) bool {
+		return n.Name == item
+	})
+}
 
-	return false
+func contains(list []string, item string) bool {
+	return slices.ContainsFunc(list, func(n string) bool {
+		return n == item
+	})
 }

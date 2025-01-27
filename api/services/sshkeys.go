@@ -84,7 +84,7 @@ func (s *service) CreatePublicKey(ctx context.Context, req requests.PublicKeyCre
 		}
 
 		for _, tag := range req.Filter.Tags {
-			if !contains(tags, tag) {
+			if !containsTags(tags, tag) {
 				return nil, NewErrTagNotFound(tag, nil)
 			}
 		}
@@ -150,7 +150,7 @@ func (s *service) UpdatePublicKey(ctx context.Context, fingerprint, tenant strin
 		}
 
 		for _, tag := range key.Filter.Tags {
-			if !contains(tags, tag) {
+			if !containsTags(tags, tag) {
 				return nil, NewErrTagNotFound(tag, nil)
 			}
 		}

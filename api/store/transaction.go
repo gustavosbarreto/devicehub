@@ -5,9 +5,7 @@ import (
 	"errors"
 )
 
-var (
-	ErrStartTransactionFailed = errors.New("start transaction failed")
-)
+var ErrStartTransactionFailed = errors.New("start transaction failed")
 
 // TransactionCb defines the function signature expected for transaction operations.
 // It typically encompasses a series of store method calls that must be executed within a transaction.

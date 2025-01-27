@@ -3,8 +3,11 @@ package mongo
 import (
 	"context"
 
+	"github.com/shellhub-io/shellhub/pkg/models"
 	"go.mongodb.org/mongo-driver/bson"
 	mongodriver "go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 )
 
 func (s *Store) FirewallRuleGetTags(ctx context.Context, tenant string) ([]string, int, error) {
@@ -16,43 +19,6 @@ func (s *Store) FirewallRuleGetTags(ctx context.Context, tenant string) ([]strin
 	}
 
 	return tags, len(tags), FromMongoError(err)
-}
-
-func (s *Store) TagsGet(ctx context.Context, tenant string) ([]string, int, error) {
-	session, err := s.db.Client().StartSession()
-	if err != nil {
-		return nil, 0, err
-	}
-	defer session.EndSession(ctx)
-
-	tags, err := session.WithTransaction(ctx, func(sessCtx mongodriver.SessionContext) (interface{}, error) {
-		deviceTags, _, err := s.DeviceGetTags(sessCtx, tenant)
-		if err != nil {
-			return nil, err
-		}
-
-		keyTags, _, err := s.PublicKeyGetTags(sessCtx, tenant)
-		if err != nil {
-			return nil, err
-		}
-
-		ruleTags, _, err := s.FirewallRuleGetTags(sessCtx, tenant)
-		if err != nil {
-			return nil, err
-		}
-
-		tags := []string{}
-		tags = append(tags, deviceTags...)
-		tags = append(tags, keyTags...)
-		tags = append(tags, ruleTags...)
-
-		return removeDuplicate[string](tags), nil
-	})
-	if err != nil {
-		return nil, 0, FromMongoError(err)
-	}
-
-	return tags.([]string), len(tags.([]string)), nil
 }
 
 func (s *Store) FirewallRuleBulkRenameTag(ctx context.Context, tenant, currentTag, newTag string) (int64, error) {
@@ -84,7 +50,12 @@ func (s *Store) TagsRename(ctx context.Context, tenantID string, oldTag string, 
 			return int64(0), err
 		}
 
-		return devCount + keyCount + rulCount, nil
+		tagsCount, err := s.TagsBulkRenameTag(sessCtx, tenantID, oldTag, newTag)
+		if err != nil {
+			return int64(0), err
+		}
+
+		return devCount + keyCount + rulCount + tagsCount, nil
 	})
 	if err != nil {
 		return int64(0), FromMongoError(err)
@@ -122,11 +93,82 @@ func (s *Store) TagsDelete(ctx context.Context, tenantID string, tag string) (in
 			return int64(0), err
 		}
 
-		return devCount + keyCount + rulCount, nil
+		tagCount, err := s.TagsBulkDeleteTag(sessCtx, tenantID, tag)
+		if err != nil {
+			return int64(0), err
+		}
+
+		return devCount + keyCount + rulCount + tagCount, nil
 	})
 	if err != nil {
 		return int64(0), FromMongoError(err)
 	}
 
 	return count.(int64), nil
+}
+
+func (s *Store) TagGet(ctx context.Context, tagName, tenant string) (*models.Tags, error) {
+	tag := new(models.Tags)
+	if err := s.db.Collection("tags").FindOne(ctx, bson.M{"name": tagName, "tenant_id": tenant}).Decode(tag); err != nil {
+		return nil, FromMongoError(err)
+	}
+
+	return tag, nil
+}
+
+func (s *Store) TagsGet(ctx context.Context, tenant string) ([]models.Tags, int64, error) {
+	tags, length, err := s.TagsGetTags(ctx, tenant)
+	if err != nil {
+		return nil, length, FromMongoError(err)
+	}
+
+	return removeDuplicate[models.Tags](tags), length, nil
+}
+
+func (s *Store) TagsPushTag(ctx context.Context, tagName, tenantID string) error {
+	tag := &models.Tags{
+		Name:   tagName,
+		Tenant: tenantID,
+		Color:  "",
+	}
+
+	_, err := s.db.Collection("tags", options.Collection().SetWriteConcern(writeconcern.Majority())).
+		InsertOne(ctx, tag)
+	if err != nil {
+		return FromMongoError(err)
+	}
+
+	return nil
+}
+
+func (s *Store) TagsBulkDeleteTag(ctx context.Context, tenant, tagName string) (int64, error) {
+	res, err := s.db.Collection("tags", options.Collection().SetWriteConcern(writeconcern.Majority())).
+		DeleteOne(ctx, bson.M{"tenant_id": tenant, "name": tagName})
+
+	return res.DeletedCount, FromMongoError(err)
+}
+
+func (s *Store) TagsGetTags(ctx context.Context, tenant string) ([]models.Tags, int64, error) {
+	cursor, err := s.db.Collection("tags").Find(ctx, bson.M{"tenant_id": tenant})
+	if err != nil {
+		return nil, 0, FromMongoError(err)
+	}
+	defer cursor.Close(ctx)
+
+	tags := make([]models.Tags, cursor.RemainingBatchLength())
+	i := 0
+
+	for cursor.Next(ctx) {
+		tg := new(models.Tags)
+
+		if err := cursor.Decode(tg); err != nil {
+			return nil, int64(0), FromMongoError(err)
+		}
+
+		tags[i] = *tg //nolint:forcetypeassert
+
+		i++
+	}
+
+	return tags, int64(len(tags)), FromMongoError(err)
 }

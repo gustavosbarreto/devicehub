@@ -39,7 +39,7 @@ func (s *service) AddPublicKeyTag(ctx context.Context, tenant, fingerprint, tag 
 		return NewErrTagEmpty(tenant, err)
 	}
 
-	if !contains(tags, tag) {
+	if !containsTags(tags, tag) {
 		return NewErrTagNotFound(tag, nil)
 	}
 
@@ -129,7 +129,7 @@ func (s *service) UpdatePublicKeyTags(ctx context.Context, tenant, fingerprint s
 	}
 
 	for _, tag := range tags {
-		if !contains(allTags, tag) {
+		if !containsTags(allTags, tag) {
 			return NewErrTagNotFound(tag, nil)
 		}
 	}
