@@ -21,6 +21,8 @@ import (
 
 func TestListDevices(t *testing.T) {
 	storeMock := new(storemock.Store)
+	queryOptionsMock := new(storemock.QueryOptions)
+	storeMock.On("Options").Return(queryOptionsMock)
 
 	type Expected struct {
 		devices []models.Device
@@ -44,8 +46,9 @@ func TestListDevices(t *testing.T) {
 				Filters:      query.Filters{},
 			},
 			requiredMocks: func(ctx context.Context) {
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
 				storeMock.
-					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted).
+					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted, mock.AnythingOfType("store.DeviceQueryOption")).
 					Return([]models.Device{}, 0, errors.New("error", "", 0)).
 					Once()
 			},
@@ -65,8 +68,9 @@ func TestListDevices(t *testing.T) {
 				Filters:      query.Filters{},
 			},
 			requiredMocks: func(ctx context.Context) {
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
 				storeMock.
-					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted).
+					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted, mock.AnythingOfType("store.DeviceQueryOption")).
 					Return([]models.Device{}, 0, nil).
 					Once()
 			},
@@ -263,8 +267,9 @@ func TestListDevices_tenant_not_empty(t *testing.T) {
 					On("DeviceRemovedCount", ctx, "00000000-0000-4000-0000-000000000000").
 					Return(int64(1), nil).
 					Once()
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
 				storeMock.
-					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableFromRemoved).
+					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableFromRemoved, mock.AnythingOfType("store.DeviceQueryOption")).
 					Return([]models.Device{}, 0, errors.New("error", "layer", 0)).
 					Once()
 			},
@@ -297,8 +302,9 @@ func TestListDevices_tenant_not_empty(t *testing.T) {
 					On("DeviceRemovedCount", ctx, "00000000-0000-4000-0000-000000000000").
 					Return(int64(1), nil).
 					Once()
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
 				storeMock.
-					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableFromRemoved).
+					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableFromRemoved, mock.AnythingOfType("store.DeviceQueryOption")).
 					Return([]models.Device{}, 0, nil).
 					Once()
 			},
@@ -331,8 +337,9 @@ func TestListDevices_tenant_not_empty(t *testing.T) {
 					On("DeviceRemovedCount", ctx, "00000000-0000-4000-0000-000000000000").
 					Return(int64(0), nil).
 					Once()
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
 				storeMock.
-					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted).
+					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted, mock.AnythingOfType("store.DeviceQueryOption")).
 					Return([]models.Device{}, 0, errors.New("error", "layer", 0)).
 					Once()
 			},
@@ -365,8 +372,9 @@ func TestListDevices_tenant_not_empty(t *testing.T) {
 					On("DeviceRemovedCount", ctx, "00000000-0000-4000-0000-000000000000").
 					Return(int64(0), nil).
 					Once()
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
 				storeMock.
-					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted).
+					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted, mock.AnythingOfType("store.DeviceQueryOption")).
 					Return([]models.Device{}, 0, nil).
 					Once()
 			},
@@ -399,8 +407,9 @@ func TestListDevices_tenant_not_empty(t *testing.T) {
 					On("Get", "SHELLHUB_ENTERPRISE").
 					Return("true").
 					Once()
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
 				storeMock.
-					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableAsFalse).
+					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableAsFalse, mock.AnythingOfType("store.DeviceQueryOption")).
 					Return([]models.Device{}, 0, errors.New("error", "layer", 0)).
 					Once()
 			},
@@ -433,8 +442,9 @@ func TestListDevices_tenant_not_empty(t *testing.T) {
 					On("Get", "SHELLHUB_ENTERPRISE").
 					Return("true").
 					Once()
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
 				storeMock.
-					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableAsFalse).
+					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableAsFalse, mock.AnythingOfType("store.DeviceQueryOption")).
 					Return([]models.Device{}, 0, nil).
 					Once()
 			},
@@ -467,8 +477,9 @@ func TestListDevices_tenant_not_empty(t *testing.T) {
 					On("Get", "SHELLHUB_ENTERPRISE").
 					Return("true").
 					Once()
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
 				storeMock.
-					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted).
+					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted, mock.AnythingOfType("store.DeviceQueryOption")).
 					Return([]models.Device{}, 0, errors.New("error", "layer", 0)).
 					Once()
 			},
@@ -501,8 +512,9 @@ func TestListDevices_tenant_not_empty(t *testing.T) {
 					On("Get", "SHELLHUB_ENTERPRISE").
 					Return("true").
 					Once()
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
 				storeMock.
-					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted).
+					On("DeviceList", ctx, models.DeviceStatusAccepted, query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{By: "created_at", Order: "asc"}, store.DeviceAcceptableIfNotAccepted, mock.AnythingOfType("store.DeviceQueryOption")).
 					Return([]models.Device{}, 0, nil).
 					Once()
 			},
@@ -530,7 +542,9 @@ func TestListDevices_tenant_not_empty(t *testing.T) {
 }
 
 func TestGetDevice(t *testing.T) {
-	mock := new(storemock.Store)
+	storeMock := new(storemock.Store)
+	queryOptionsMock := new(storemock.QueryOptions)
+	storeMock.On("Options").Return(queryOptionsMock)
 
 	ctx := context.TODO()
 
@@ -548,7 +562,8 @@ func TestGetDevice(t *testing.T) {
 		{
 			description: "fails when the store get device fails",
 			requiredMocks: func() {
-				mock.On("DeviceGet", ctx, models.UID("_uid")).
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
+				storeMock.On("DeviceGet", ctx, models.UID("_uid"), mock.AnythingOfType("store.DeviceQueryOption")).
 					Return(nil, errors.New("error", "", 0)).Once()
 			},
 			uid: models.UID("_uid"),
@@ -560,9 +575,10 @@ func TestGetDevice(t *testing.T) {
 		{
 			description: "succeeds",
 			requiredMocks: func() {
-				device := &models.Device{UID: "uid"}
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
 
-				mock.On("DeviceGet", ctx, models.UID("uid")).
+				device := &models.Device{UID: "uid"}
+				storeMock.On("DeviceGet", ctx, models.UID("uid"), mock.AnythingOfType("store.DeviceQueryOption")).
 					Return(device, nil).Once()
 			},
 			uid: models.UID("uid"),
@@ -577,14 +593,14 @@ func TestGetDevice(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			tc.requiredMocks()
 
-			service := NewService(store.Store(mock), privateKey, publicKey, storecache.NewNullCache(), clientMock)
+			service := NewService(store.Store(storeMock), privateKey, publicKey, storecache.NewNullCache(), clientMock)
 
 			returnedDevice, err := service.GetDevice(ctx, tc.uid)
 			assert.Equal(t, tc.expected, Expected{returnedDevice, err})
 		})
 	}
 
-	mock.AssertExpectations(t)
+	storeMock.AssertExpectations(t)
 }
 
 func TestDeleteDevice(t *testing.T) {
@@ -982,7 +998,9 @@ func TestRenameDevice(t *testing.T) {
 }
 
 func TestLookupDevice(t *testing.T) {
-	mock := new(storemock.Store)
+	storeMock := new(storemock.Store)
+	queryOptionsMock := new(storemock.QueryOptions)
+	storeMock.On("Options").Return(queryOptionsMock)
 
 	ctx := context.TODO()
 
@@ -1003,7 +1021,11 @@ func TestLookupDevice(t *testing.T) {
 			namespace:   "namespace",
 			device:      &models.Device{UID: "uid", Name: "name", TenantID: "tenant", Identity: &models.DeviceIdentity{MAC: "00:00:00:00:00:00"}, Status: "accepted"},
 			requiredMocks: func(device *models.Device, namespace string) {
-				mock.On("DeviceLookup", ctx, namespace, device.Name).Return(nil, errors.New("error", "", 0)).Once()
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
+				storeMock.
+					On("DeviceLookup", ctx, namespace, device.Name, mock.AnythingOfType("store.DeviceQueryOption")).
+					Return(nil, errors.New("error", "", 0)).
+					Once()
 			},
 			expected: Expected{
 				nil,
@@ -1015,8 +1037,11 @@ func TestLookupDevice(t *testing.T) {
 			namespace:   "namespace",
 			device:      &models.Device{UID: "uid", Name: "name", TenantID: "tenant", Identity: &models.DeviceIdentity{MAC: "00:00:00:00:00:00"}, Status: "accepted"},
 			requiredMocks: func(device *models.Device, namespace string) {
-				mock.On("DeviceLookup", ctx, namespace, device.Name).
-					Return(nil, store.ErrNoDocuments).Once()
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
+				storeMock.
+					On("DeviceLookup", ctx, namespace, device.Name, mock.AnythingOfType("store.DeviceQueryOption")).
+					Return(nil, store.ErrNoDocuments).
+					Once()
 			},
 			expected: Expected{
 				nil,
@@ -1028,8 +1053,11 @@ func TestLookupDevice(t *testing.T) {
 			namespace:   "namespace",
 			device:      &models.Device{UID: "uid", Name: "name", TenantID: "tenant", Identity: &models.DeviceIdentity{MAC: "00:00:00:00:00:00"}, Status: "accepted"},
 			requiredMocks: func(device *models.Device, namespace string) {
-				mock.On("DeviceLookup", ctx, namespace, device.Name).
-					Return(device, nil).Once()
+				queryOptionsMock.On("DeviceWithTagDetails").Return(nil).Once()
+				storeMock.
+					On("DeviceLookup", ctx, namespace, device.Name, mock.AnythingOfType("store.DeviceQueryOption")).
+					Return(device, nil).
+					Once()
 			},
 			expected: Expected{
 				&models.Device{UID: "uid", Name: "name", TenantID: "tenant", Identity: &models.DeviceIdentity{MAC: "00:00:00:00:00:00"}, Status: "accepted"},
@@ -1042,12 +1070,12 @@ func TestLookupDevice(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			tc.requiredMocks(tc.device, tc.namespace)
 
-			service := NewService(store.Store(mock), privateKey, publicKey, storecache.NewNullCache(), clientMock)
+			service := NewService(store.Store(storeMock), privateKey, publicKey, storecache.NewNullCache(), clientMock)
 			returnedDevice, err := service.LookupDevice(ctx, tc.namespace, tc.device.Name)
 			assert.Equal(t, tc.expected, Expected{returnedDevice, err})
 		})
 	}
-	mock.AssertExpectations(t)
+	storeMock.AssertExpectations(t)
 }
 
 func TestOfflineDevice(t *testing.T) {

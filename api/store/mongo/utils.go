@@ -2,11 +2,13 @@ package mongo
 
 import (
 	"context"
+	stderrors "errors"
 	"io"
 	"reflect"
 
 	"github.com/shellhub-io/shellhub/api/store"
 	"github.com/shellhub-io/shellhub/pkg/errors"
+	"github.com/shellhub-io/shellhub/pkg/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -60,20 +62,6 @@ func FromMongoError(err error) error {
 	}
 }
 
-// removeDuplicate removes duplicate elements from a slice while maintaining the original order.
-func removeDuplicate[T comparable](slice []T) []T {
-	allKeys := make(map[T]bool)
-	list := []T{}
-	for _, item := range slice {
-		if _, value := allKeys[item]; !value {
-			allKeys[item] = true
-			list = append(list, item)
-		}
-	}
-
-	return list
-}
-
 // structToBson converts a struct to it's bson representation.
 func structToBson[T any](v T) primitive.M {
 	data, err := bson.Marshal(v)
@@ -99,5 +87,18 @@ func sanitizeBson(data primitive.M) {
 				data[k] = nil
 			}
 		}
+	}
+}
+
+func collectionFromTagTarget(target models.TagTarget) (string, string, string, error) {
+	switch target {
+	case models.TagTargetDevice:
+		return "devices", "uid", "tags", nil
+	case models.TagTargetPublicKey:
+		return "public_keys", "fingerprint", "filter.tags", nil
+	case models.TagTargetFirewallRule:
+		return "firewall_rules", "_id", "", nil
+	default:
+		return "", "", "", stderrors.New("invalid tag target")
 	}
 }

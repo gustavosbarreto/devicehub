@@ -19,8 +19,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// DeviceList returns a list of devices based on the given filters, pagination and sorting.
-func (s *Store) DeviceList(ctx context.Context, status models.DeviceStatus, paginator query.Paginator, filters query.Filters, sorter query.Sorter, acceptable store.DeviceAcceptable) ([]models.Device, int, error) {
+func (s *Store) DeviceList(ctx context.Context, status models.DeviceStatus, paginator query.Paginator, filters query.Filters, sorter query.Sorter, acceptable store.DeviceAcceptable, opts ...store.DeviceQueryOption) ([]models.Device, int, error) {
 	query := []bson.M{
 		{
 			"$match": bson.M{
@@ -168,13 +167,20 @@ func (s *Store) DeviceList(ctx context.Context, status models.DeviceStatus, pagi
 			return devices, count, err
 		}
 
+		ctx := context.WithValue(ctx, "store", s) //nolint:revive
+		for _, opt := range opts {
+			if err := opt(ctx, device); err != nil {
+				return nil, 0, err
+			}
+		}
+
 		devices = append(devices, *device)
 	}
 
 	return devices, count, FromMongoError(err)
 }
 
-func (s *Store) DeviceGet(ctx context.Context, uid models.UID) (*models.Device, error) {
+func (s *Store) DeviceGet(ctx context.Context, uid models.UID, opts ...store.DeviceQueryOption) (*models.Device, error) {
 	query := []bson.M{
 		{
 			"$match": bson.M{"uid": uid},
@@ -231,6 +237,12 @@ func (s *Store) DeviceGet(ctx context.Context, uid models.UID) (*models.Device, 
 	err = cursor.Decode(&device)
 	if err != nil {
 		return nil, FromMongoError(err)
+	}
+
+	for _, opt := range opts {
+		if err := opt(context.WithValue(ctx, "store", s), device); err != nil { //nolint:revive
+			return nil, err
+		}
 	}
 
 	return device, nil
@@ -314,7 +326,7 @@ func (s *Store) DeviceRename(ctx context.Context, uid models.UID, hostname strin
 	return nil
 }
 
-func (s *Store) DeviceLookup(ctx context.Context, namespace, hostname string) (*models.Device, error) {
+func (s *Store) DeviceLookup(ctx context.Context, namespace, hostname string, opts ...store.DeviceQueryOption) (*models.Device, error) {
 	ns := new(models.Namespace)
 	if err := s.db.Collection("namespaces").FindOne(ctx, bson.M{"name": namespace}).Decode(&ns); err != nil {
 		return nil, FromMongoError(err)
@@ -323,6 +335,12 @@ func (s *Store) DeviceLookup(ctx context.Context, namespace, hostname string) (*
 	device := new(models.Device)
 	if err := s.db.Collection("devices").FindOne(ctx, bson.M{"tenant_id": ns.TenantID, "name": hostname, "status": "accepted"}).Decode(&device); err != nil {
 		return nil, FromMongoError(err)
+	}
+
+	for _, opt := range opts {
+		if err := opt(context.WithValue(ctx, "store", s), device); err != nil { //nolint:revive
+			return nil, err
+		}
 	}
 
 	return device, nil
@@ -454,7 +472,7 @@ func (s *Store) DeviceListByUsage(ctx context.Context, tenant string) ([]models.
 	return uids, nil
 }
 
-func (s *Store) DeviceGetByMac(ctx context.Context, mac string, tenantID string, status models.DeviceStatus) (*models.Device, error) {
+func (s *Store) DeviceGetByMac(ctx context.Context, mac string, tenantID string, status models.DeviceStatus, opts ...store.DeviceQueryOption) (*models.Device, error) {
 	device := new(models.Device)
 
 	switch status {
@@ -468,20 +486,32 @@ func (s *Store) DeviceGetByMac(ctx context.Context, mac string, tenantID string,
 		}
 	}
 
+	for _, opt := range opts {
+		if err := opt(context.WithValue(ctx, "store", s), device); err != nil { //nolint:revive
+			return nil, err
+		}
+	}
+
 	return device, nil
 }
 
-func (s *Store) DeviceGetByName(ctx context.Context, name string, tenantID string, status models.DeviceStatus) (*models.Device, error) {
+func (s *Store) DeviceGetByName(ctx context.Context, name string, tenantID string, status models.DeviceStatus, opts ...store.DeviceQueryOption) (*models.Device, error) {
 	device := new(models.Device)
 
 	if err := s.db.Collection("devices").FindOne(ctx, bson.M{"tenant_id": tenantID, "name": name, "status": string(status)}).Decode(&device); err != nil {
 		return nil, FromMongoError(err)
 	}
 
+	for _, opt := range opts {
+		if err := opt(context.WithValue(ctx, "store", s), device); err != nil { //nolint:revive
+			return nil, err
+		}
+	}
+
 	return device, nil
 }
 
-func (s *Store) DeviceGetByUID(ctx context.Context, uid models.UID, tenantID string) (*models.Device, error) {
+func (s *Store) DeviceGetByUID(ctx context.Context, uid models.UID, tenantID string, opts ...store.DeviceQueryOption) (*models.Device, error) {
 	var device *models.Device
 	if err := s.cache.Get(ctx, strings.Join([]string{"device", string(uid)}, "/"), &device); err != nil {
 		logrus.Error(err)
@@ -497,6 +527,12 @@ func (s *Store) DeviceGetByUID(ctx context.Context, uid models.UID, tenantID str
 
 	if err := s.cache.Set(ctx, strings.Join([]string{"device", string(uid)}, "/"), device, time.Minute); err != nil {
 		logrus.Error(err)
+	}
+
+	for _, opt := range opts {
+		if err := opt(context.WithValue(ctx, "store", s), device); err != nil { //nolint:revive
+			return nil, err
+		}
 	}
 
 	return device, nil
@@ -660,10 +696,16 @@ func (s *Store) DeviceCreatePublicURLAddress(ctx context.Context, uid models.UID
 	return nil
 }
 
-func (s *Store) DeviceGetByPublicURLAddress(ctx context.Context, address string) (*models.Device, error) {
+func (s *Store) DeviceGetByPublicURLAddress(ctx context.Context, address string, opts ...store.DeviceQueryOption) (*models.Device, error) {
 	device := new(models.Device)
 	if err := s.db.Collection("devices").FindOne(ctx, bson.M{"public_url_address": address}).Decode(&device); err != nil {
 		return nil, FromMongoError(err)
+	}
+
+	for _, opt := range opts {
+		if err := opt(context.WithValue(ctx, "store", s), device); err != nil { //nolint:revive
+			return nil, err
+		}
 	}
 
 	return device, nil

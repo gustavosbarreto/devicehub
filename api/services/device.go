@@ -59,23 +59,47 @@ func (s *service) ListDevices(ctx context.Context, req *requests.DeviceList) ([]
 				}
 
 				if ns.HasLimitDevicesReached(removed) {
-					return s.store.DeviceList(ctx, req.DeviceStatus, req.Paginator, req.Filters, req.Sorter, store.DeviceAcceptableFromRemoved)
+					return s.store.DeviceList(
+						ctx,
+						req.DeviceStatus,
+						req.Paginator,
+						req.Filters,
+						req.Sorter,
+						store.DeviceAcceptableFromRemoved,
+						s.store.Options().DeviceWithTagDetails(),
+					)
 				}
 			case envs.IsEnterprise():
 				fallthrough
 			case envs.IsCommunity():
 				if ns.HasMaxDevicesReached() {
-					return s.store.DeviceList(ctx, req.DeviceStatus, req.Paginator, req.Filters, req.Sorter, store.DeviceAcceptableAsFalse)
+					return s.store.DeviceList(
+						ctx,
+						req.DeviceStatus,
+						req.Paginator,
+						req.Filters,
+						req.Sorter,
+						store.DeviceAcceptableAsFalse,
+						s.store.Options().DeviceWithTagDetails(),
+					)
 				}
 			}
 		}
 	}
 
-	return s.store.DeviceList(ctx, req.DeviceStatus, req.Paginator, req.Filters, req.Sorter, store.DeviceAcceptableIfNotAccepted)
+	return s.store.DeviceList(
+		ctx,
+		req.DeviceStatus,
+		req.Paginator,
+		req.Filters,
+		req.Sorter,
+		store.DeviceAcceptableIfNotAccepted,
+		s.store.Options().DeviceWithTagDetails(),
+	)
 }
 
 func (s *service) GetDevice(ctx context.Context, uid models.UID) (*models.Device, error) {
-	device, err := s.store.DeviceGet(ctx, uid)
+	device, err := s.store.DeviceGet(ctx, uid, s.store.Options().DeviceWithTagDetails())
 	if err != nil {
 		return nil, NewErrDeviceNotFound(uid, err)
 	}
@@ -84,7 +108,7 @@ func (s *service) GetDevice(ctx context.Context, uid models.UID) (*models.Device
 }
 
 func (s *service) GetDeviceByPublicURLAddress(ctx context.Context, address string) (*models.Device, error) {
-	device, err := s.store.DeviceGetByPublicURLAddress(ctx, address)
+	device, err := s.store.DeviceGetByPublicURLAddress(ctx, address, s.store.Options().DeviceWithTagDetails())
 	if err != nil {
 		return nil, NewErrDeviceNotFound(models.UID(address), err)
 	}
@@ -143,8 +167,8 @@ func (s *service) RenameDevice(ctx context.Context, uid models.UID, name, tenant
 		CreatedAt:  time.Time{},
 		RemoteAddr: "",
 		Position:   &models.DevicePosition{},
-		Tags:       []string{},
 		PublicURL:  false,
+		Taggable:   models.Taggable{TagsID: []string{}, Tags: nil},
 	}
 
 	if ok, err := s.validator.Struct(updatedDevice); !ok || err != nil {
@@ -172,7 +196,7 @@ func (s *service) RenameDevice(ctx context.Context, uid models.UID, name, tenant
 // It receives a context, used to "control" the request flow and, the namespace name from a models.Namespace and a
 // device name from models.Device.
 func (s *service) LookupDevice(ctx context.Context, namespace, name string) (*models.Device, error) {
-	device, err := s.store.DeviceLookup(ctx, namespace, name)
+	device, err := s.store.DeviceLookup(ctx, namespace, name, s.store.Options().DeviceWithTagDetails())
 	if err != nil || device == nil {
 		return nil, NewErrDeviceLookupNotFound(namespace, name, err)
 	}

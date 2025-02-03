@@ -14,7 +14,7 @@
             "remote_addr": "",
             "status": "accepted",
             "tags": [
-                "tag-1"
+                "6791d3ae04ba86e6d7a0514d"
             ],
             "tenant_id": "00000000-0000-4000-0000-000000000000",
             "uid": "5300530e3ca2f637636b4d025d2235269014865db5204b6d115386cbee89809f"
@@ -50,7 +50,7 @@
             "remote_addr": "",
             "status": "accepted",
             "tags": [
-                "tag-1"
+                "6791d3ae04ba86e6d7a0514d"
             ],
             "tenant_id": "00000000-0000-4000-0000-000000000000",
             "uid": "2300230e3ca2f637636b4d025d2235269014865db5204b6d115386cbee89809c"

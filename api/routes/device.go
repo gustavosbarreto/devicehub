@@ -19,9 +19,6 @@ const (
 	OfflineDeviceURL            = "/devices/:uid/offline"
 	LookupDeviceURL             = "/lookup"
 	UpdateDeviceStatusURL       = "/devices/:uid/:status"
-	CreateTagURL                = "/devices/:uid/tags"      // Add a tag to a device.
-	UpdateTagURL                = "/devices/:uid/tags"      // Update device's tags with a new set.
-	RemoveTagURL                = "/devices/:uid/tags/:tag" // Delete a tag from a device.
 	UpdateDevice                = "/devices/:uid"
 )
 
@@ -237,57 +234,6 @@ func (h *Handler) UpdateDeviceStatus(c gateway.Context) error {
 	}
 
 	if err := h.service.UpdateDeviceStatus(c.Ctx(), tenant, models.UID(req.UID), status[req.Status]); err != nil {
-		return err
-	}
-
-	return c.NoContent(http.StatusOK)
-}
-
-func (h *Handler) CreateDeviceTag(c gateway.Context) error {
-	var req requests.DeviceCreateTag
-	if err := c.Bind(&req); err != nil {
-		return err
-	}
-
-	if err := c.Validate(&req); err != nil {
-		return err
-	}
-
-	if err := h.service.CreateDeviceTag(c.Ctx(), models.UID(req.UID), req.Tag); err != nil {
-		return err
-	}
-
-	return c.NoContent(http.StatusOK)
-}
-
-func (h *Handler) RemoveDeviceTag(c gateway.Context) error {
-	var req requests.DeviceRemoveTag
-	if err := c.Bind(&req); err != nil {
-		return err
-	}
-
-	if err := c.Validate(&req); err != nil {
-		return err
-	}
-
-	if err := h.service.RemoveDeviceTag(c.Ctx(), models.UID(req.UID), req.Tag); err != nil {
-		return err
-	}
-
-	return c.NoContent(http.StatusOK)
-}
-
-func (h *Handler) UpdateDeviceTag(c gateway.Context) error {
-	var req requests.DeviceUpdateTag
-	if err := c.Bind(&req); err != nil {
-		return err
-	}
-
-	if err := c.Validate(&req); err != nil {
-		return err
-	}
-
-	if err := h.service.UpdateDeviceTag(c.Ctx(), models.UID(req.UID), req.Tags); err != nil {
 		return err
 	}
 

@@ -17,7 +17,7 @@ const (
 
 type Device struct {
 	// UID is the unique identifier for a device.
-	UID              string          `json:"uid"`
+	UID              string          `json:"uid" bson:"uid"`
 	Name             string          `json:"name" bson:"name,omitempty" validate:"required,device_name"`
 	Identity         *DeviceIdentity `json:"identity"`
 	Info             *DeviceInfo     `json:"info"`
@@ -31,10 +31,11 @@ type Device struct {
 	CreatedAt        time.Time       `json:"created_at" bson:"created_at,omitempty"`
 	RemoteAddr       string          `json:"remote_addr" bson:"remote_addr"`
 	Position         *DevicePosition `json:"position" bson:"position"`
-	Tags             []string        `json:"tags" bson:"tags,omitempty"`
 	PublicURL        bool            `json:"public_url" bson:"public_url,omitempty"`
 	PublicURLAddress string          `json:"public_url_address" bson:"public_url_address,omitempty"`
 	Acceptable       bool            `json:"acceptable" bson:"acceptable,omitempty"`
+
+	Taggable `json:",inline" bson:",inline"`
 }
 
 type DeviceAuthRequest struct {

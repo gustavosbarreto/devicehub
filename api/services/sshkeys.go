@@ -7,11 +7,11 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"regexp"
+	"slices"
 
 	"github.com/shellhub-io/shellhub/api/store"
 	"github.com/shellhub-io/shellhub/pkg/api/query"
 	"github.com/shellhub-io/shellhub/pkg/api/requests"
-	"github.com/shellhub-io/shellhub/pkg/api/responses"
 	"github.com/shellhub-io/shellhub/pkg/clock"
 	"github.com/shellhub-io/shellhub/pkg/models"
 	"golang.org/x/crypto/ssh"
@@ -22,7 +22,7 @@ type SSHKeysService interface {
 	EvaluateKeyUsername(ctx context.Context, key *models.PublicKey, username string) (bool, error)
 	ListPublicKeys(ctx context.Context, paginator query.Paginator) ([]models.PublicKey, int, error)
 	GetPublicKey(ctx context.Context, fingerprint, tenant string) (*models.PublicKey, error)
-	CreatePublicKey(ctx context.Context, req requests.PublicKeyCreate, tenant string) (*responses.PublicKeyCreate, error)
+	CreatePublicKey(ctx context.Context, req requests.PublicKeyCreate, tenant string) (*models.PublicKey, error)
 	UpdatePublicKey(ctx context.Context, fingerprint, tenant string, key requests.PublicKeyUpdate) (*models.PublicKey, error)
 	DeletePublicKey(ctx context.Context, fingerprint, tenant string) error
 	CreatePrivateKey(ctx context.Context) (*models.PrivateKey, error)
@@ -41,13 +41,13 @@ func (s *service) EvaluateKeyFilter(_ context.Context, key *models.PublicKey, de
 
 		return ok, nil
 	} else if len(key.Filter.Tags) > 0 {
-		for _, tag := range dev.Tags {
-			if contains(key.Filter.Tags, tag) {
-				return true, nil
+		for _, tag := range key.Filter.TagsID {
+			if !slices.Contains(dev.TagsID, tag) {
+				return false, nil
 			}
 		}
 
-		return false, nil
+		return true, nil
 	}
 
 	return true, nil
@@ -74,22 +74,7 @@ func (s *service) GetPublicKey(ctx context.Context, fingerprint, tenant string) 
 	return s.store.PublicKeyGet(ctx, fingerprint, tenant)
 }
 
-func (s *service) CreatePublicKey(ctx context.Context, req requests.PublicKeyCreate, tenant string) (*responses.PublicKeyCreate, error) {
-	// Checks if public key filter type is Tags.
-	// If it is, checks if there are, at least, one tag on the public key filter and if the all tags exist on database.
-	if req.Filter.Tags != nil {
-		tags, _, err := s.store.TagsGet(ctx, tenant)
-		if err != nil {
-			return nil, NewErrTagEmpty(tenant, err)
-		}
-
-		for _, tag := range req.Filter.Tags {
-			if !contains(tags, tag) {
-				return nil, NewErrTagNotFound(tag, nil)
-			}
-		}
-	}
-
+func (s *service) CreatePublicKey(ctx context.Context, req requests.PublicKeyCreate, tenant string) (*models.PublicKey, error) {
 	pubKey, _, _, _, err := ssh.ParseAuthorizedKey(req.Data) //nolint:dogsled
 	if err != nil {
 		return nil, NewErrPublicKeyDataInvalid(req.Data, nil)
@@ -106,6 +91,19 @@ func (s *service) CreatePublicKey(ctx context.Context, req requests.PublicKeyCre
 		return nil, NewErrPublicKeyDuplicated([]string{req.Fingerprint}, err)
 	}
 
+	// The API works with tag names while the database works with IDs. We map names to IDs before
+	// running the insertion.
+	if len(req.Filter.Tags) > 0 {
+		for i, name := range req.Filter.Tags {
+			tag, err := s.store.TagGetByName(ctx, tenant, name)
+			if err != nil {
+				return nil, NewErrTagNotFound(name, err)
+			}
+
+			req.Filter.Tags[i] = tag.ID
+		}
+	}
+
 	model := models.PublicKey{
 		Data:        ssh.MarshalAuthorizedKey(pubKey),
 		Fingerprint: req.Fingerprint,
@@ -116,43 +114,33 @@ func (s *service) CreatePublicKey(ctx context.Context, req requests.PublicKeyCre
 			Username: req.Username,
 			Filter: models.PublicKeyFilter{
 				Hostname: req.Filter.Hostname,
-				Tags:     req.Filter.Tags,
+				Taggable: models.Taggable{TagsID: req.Filter.Tags, Tags: nil},
 			},
 		},
 	}
 
-	err = s.store.PublicKeyCreate(ctx, &model)
-	if err != nil {
+	if err := s.store.PublicKeyCreate(ctx, &model); err != nil {
 		return nil, err
 	}
 
-	return &responses.PublicKeyCreate{
-		Data:        model.Data,
-		Filter:      responses.PublicKeyFilter(model.Filter),
-		Name:        model.Name,
-		Username:    model.Username,
-		TenantID:    model.TenantID,
-		Fingerprint: model.Fingerprint,
-	}, nil
+	return s.store.PublicKeyGet(ctx, req.Fingerprint, tenant, s.store.Options().PublicKeyWithTagDetails())
 }
 
 func (s *service) ListPublicKeys(ctx context.Context, paginator query.Paginator) ([]models.PublicKey, int, error) {
-	return s.store.PublicKeyList(ctx, paginator)
+	return s.store.PublicKeyList(ctx, paginator, s.store.Options().PublicKeyWithTagDetails())
 }
 
 func (s *service) UpdatePublicKey(ctx context.Context, fingerprint, tenant string, key requests.PublicKeyUpdate) (*models.PublicKey, error) {
-	// Checks if public key filter type is Tags. If it is, checks if there are, at least, one tag on the public key
-	// filter and if the all tags exist on database.
-	if key.Filter.Tags != nil {
-		tags, _, err := s.store.TagsGet(ctx, tenant)
-		if err != nil {
-			return nil, NewErrTagEmpty(tenant, err)
-		}
-
-		for _, tag := range key.Filter.Tags {
-			if !contains(tags, tag) {
-				return nil, NewErrTagNotFound(tag, nil)
+	// The API works with tag names while the database works with IDs. We map names to IDs before
+	// running the insertion.
+	if len(key.Filter.Tags) > 0 {
+		for i, name := range key.Filter.Tags {
+			tag, err := s.store.TagGetByName(ctx, tenant, name)
+			if err != nil {
+				return nil, NewErrTagNotFound(name, err)
 			}
+
+			key.Filter.Tags[i] = tag.ID
 		}
 	}
 
@@ -162,7 +150,7 @@ func (s *service) UpdatePublicKey(ctx context.Context, fingerprint, tenant strin
 			Username: key.Username,
 			Filter: models.PublicKeyFilter{
 				Hostname: key.Filter.Hostname,
-				Tags:     key.Filter.Tags,
+				Taggable: models.Taggable{TagsID: key.Filter.Tags, Tags: nil},
 			},
 		},
 	}

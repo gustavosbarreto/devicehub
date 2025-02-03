@@ -59,3 +59,49 @@ func (*queryOptions) EnrichMembersData() store.NamespaceQueryOption {
 		return nil
 	}
 }
+
+func (*queryOptions) DeviceWithTagDetails() store.DeviceQueryOption {
+	return func(ctx context.Context, device *models.Device) error {
+		s, ok := ctx.Value("store").(store.Store)
+		if !ok {
+			return errors.New("store not found in context")
+		}
+
+		device.Tags = []models.Tag{}
+		for _, tagID := range device.TagsID {
+			tag, err := s.TagGetByID(ctx, tagID)
+			if err != nil {
+				log.WithError(err).WithField("id", tagID).Error("cannot retrieve tag")
+
+				continue
+			}
+
+			device.Tags = append(device.Tags, *tag)
+		}
+
+		return nil
+	}
+}
+
+func (*queryOptions) PublicKeyWithTagDetails() store.PublicKeyQueryOption {
+	return func(ctx context.Context, publicKey *models.PublicKey) error {
+		s, ok := ctx.Value("store").(store.Store)
+		if !ok {
+			return errors.New("store not found in context")
+		}
+
+		publicKey.Filter.Tags = []models.Tag{}
+		for _, tagID := range publicKey.Filter.TagsID {
+			tag, err := s.TagGetByID(ctx, tagID)
+			if err != nil {
+				log.WithError(err).WithField("id", tagID).Error("cannot retrieve tag")
+
+				continue
+			}
+
+			publicKey.Filter.Tags = append(publicKey.Filter.Tags, *tag)
+		}
+
+		return nil
+	}
+}

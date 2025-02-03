@@ -59,7 +59,7 @@ func TestPublicKeyGet(t *testing.T) {
 						Name: "public_key",
 						Filter: models.PublicKeyFilter{
 							Hostname: ".*",
-							Tags:     []string{"tag-1"},
+							Taggable: models.Taggable{TagsID: []string{"6791d3ae04ba86e6d7a0514d"}, Tags: nil},
 						},
 					},
 				},
@@ -118,7 +118,7 @@ func TestPublicKeyList(t *testing.T) {
 							Name: "public_key",
 							Filter: models.PublicKeyFilter{
 								Hostname: ".*",
-								Tags:     []string{"tag-1"},
+								Taggable: models.Taggable{TagsID: []string{"6791d3ae04ba86e6d7a0514d"}, Tags: nil},
 							},
 						},
 					},
@@ -234,7 +234,7 @@ func TestPublicKeyUpdate(t *testing.T) {
 					Name: "edited_key",
 					Filter: models.PublicKeyFilter{
 						Hostname: ".*",
-						Tags:     []string{"edited-tag"},
+						Taggable: models.Taggable{TagsID: []string{"6791d3ae04ba86e6d7a0514d"}, Tags: nil},
 					},
 				},
 			},
@@ -249,7 +249,7 @@ func TestPublicKeyUpdate(t *testing.T) {
 						Name: "edited_key",
 						Filter: models.PublicKeyFilter{
 							Hostname: ".*",
-							Tags:     []string{"edited-tag"},
+							Taggable: models.Taggable{TagsID: []string{"6791d3ae04ba86e6d7a0514d"}, Tags: nil},
 						},
 					},
 				},

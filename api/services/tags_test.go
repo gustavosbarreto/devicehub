@@ -2,357 +2,807 @@ package services
 
 import (
 	"context"
+	"errors"
 	"testing"
 
-	"github.com/shellhub-io/shellhub/api/store"
-	"github.com/shellhub-io/shellhub/api/store/mocks"
-	storecache "github.com/shellhub-io/shellhub/pkg/cache"
-	"github.com/shellhub-io/shellhub/pkg/errors"
-	mocksGeoIp "github.com/shellhub-io/shellhub/pkg/geoip/mocks"
+	storemock "github.com/shellhub-io/shellhub/api/store/mocks"
+	"github.com/shellhub-io/shellhub/pkg/api/query"
+	"github.com/shellhub-io/shellhub/pkg/api/requests"
 	"github.com/shellhub-io/shellhub/pkg/models"
-	"github.com/shellhub-io/shellhub/pkg/validator"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
-func TestGetTags(t *testing.T) {
-	mock := new(mocks.Store)
-
+func TestService_CreateTag(t *testing.T) {
+	storeMock := new(storemock.Store)
 	ctx := context.TODO()
 
 	type Expected struct {
-		Tags  []string
-		Count int
-		Error error
+		insertedID string
+		conflicts  []string
+		err        error
 	}
 
 	cases := []struct {
-		name          string
-		uid           models.UID
-		tenantID      string
+		description   string
+		req           *requests.CreateTag
 		requiredMocks func()
 		expected      Expected
 	}{
 		{
-			name:     "fail when namespace is not found",
-			tenantID: "not_found_tenant",
+			description: "fails when namespace not found",
+			req: &requests.CreateTag{
+				Name:     "production",
+				TenantID: "tenant1",
+			},
 			requiredMocks: func() {
-				mock.On("NamespaceGet", ctx, "not_found_tenant").Return(nil, errors.New("error", "", 0)).Once()
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(nil, errors.New("error")).
+					Once()
 			},
 			expected: Expected{
-				Tags:  nil,
-				Count: 0,
-				Error: NewErrNamespaceNotFound("not_found_tenant", errors.New("error", "", 0)),
+				insertedID: "",
+				conflicts:  []string{},
+				err:        NewErrNamespaceNotFound("tenant1", errors.New("error")),
 			},
 		},
 		{
-			name:     "fail when store function to get tags fails",
-			tenantID: "tenant",
+			description: "fails when tag name conflicts",
+			req: &requests.CreateTag{
+				Name:     "production",
+				TenantID: "tenant1",
+			},
 			requiredMocks: func() {
-				namespace := &models.Namespace{Name: "namespace", TenantID: "tenant"}
-
-				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(nil, 0, errors.New("error", "", 0)).Once()
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagConflicts", ctx, "tenant1", &models.TagConflicts{Name: "production"}).
+					Return([]string{"name"}, true, nil).
+					Once()
 			},
 			expected: Expected{
-				Tags:  nil,
-				Count: 0,
-				Error: errors.New("error", "", 0),
+				insertedID: "",
+				conflicts:  []string{"name"},
+				err:        nil,
 			},
 		},
 		{
-			name:     "success to get tags",
-			tenantID: "tenant",
+			description: "fails when tag create fails",
+			req: &requests.CreateTag{
+				Name:     "production",
+				TenantID: "tenant1",
+			},
 			requiredMocks: func() {
-				device := &models.Device{
-					UID:       "uid",
-					Namespace: "namespace",
-					TenantID:  "tenant",
-					Tags:      []string{"device1", "device2"},
-				}
-
-				namespace := &models.Namespace{Name: "namespace", TenantID: "tenant"}
-
-				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(device.Tags, len(device.Tags), nil).Once()
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagConflicts", ctx, "tenant1", &models.TagConflicts{Name: "production"}).
+					Return([]string{}, false, nil).
+					Once()
+				storeMock.
+					On("TagCreate", ctx, &models.Tag{Name: "production", TenantID: "tenant1"}).
+					Return("", errors.New("error")).
+					Once()
 			},
 			expected: Expected{
-				Tags:  []string{"device1", "device2"},
-				Count: len([]string{"device1", "device2"}),
-				Error: nil,
+				insertedID: "",
+				conflicts:  []string{},
+				err:        errors.New("error"),
+			},
+		},
+		{
+			description: "succeeds creating tag",
+			req: &requests.CreateTag{
+				Name:     "production",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagConflicts", ctx, "tenant1", &models.TagConflicts{Name: "production"}).
+					Return([]string{}, false, nil).
+					Once()
+				storeMock.
+					On("TagCreate", ctx, &models.Tag{Name: "production", TenantID: "tenant1"}).
+					Return("000000000000000000000000", nil).
+					Once()
+			},
+			expected: Expected{
+				insertedID: "000000000000000000000000",
+				conflicts:  []string{},
+				err:        nil,
 			},
 		},
 	}
 
+	service := NewService(storeMock, privateKey, publicKey, nil, nil)
+
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.description, func(t *testing.T) {
 			tc.requiredMocks()
 
-			locator := &mocksGeoIp.Locator{}
-			service := NewService(store.Store(mock), privateKey, publicKey, storecache.NewNullCache(), clientMock, WithLocator(locator))
-
-			tags, count, err := service.GetTags(ctx, tc.tenantID)
-			assert.Equal(t, tc.expected, Expected{tags, count, err})
+			insertedID, conflicts, err := service.CreateTag(ctx, tc.req)
+			require.Equal(t, tc.expected, Expected{insertedID, conflicts, err})
 		})
 	}
 
-	mock.AssertExpectations(t)
+	storeMock.AssertExpectations(t)
 }
 
-func TestRenameTag(t *testing.T) {
-	mock := new(mocks.Store)
-
+func TestService_PushTagTo(t *testing.T) {
+	storeMock := new(storemock.Store)
 	ctx := context.TODO()
 
 	cases := []struct {
-		name          string
-		tenantID      string
-		currentTag    string
-		newTag        string
+		description   string
+		target        models.TagTarget
+		req           *requests.PushTag
 		requiredMocks func()
 		expected      error
 	}{
 		{
-			name:          "fail when tag is invalid",
-			tenantID:      "tenant",
-			currentTag:    "currentTag",
-			newTag:        "invalid_tag",
-			requiredMocks: func() {},
-			expected:      NewErrTagInvalid("invalid_tag", validator.ErrStructureInvalid),
-		},
-		{
-			name:       "fail when device has no tags",
-			tenantID:   "namespaceTenantIDNoTag",
-			currentTag: "device3",
-			newTag:     "device1",
-			requiredMocks: func() {
-				mock.On("TagsGet", ctx, "namespaceTenantIDNoTag").Return(nil, 0, errors.New("error", "", 0))
+			description: "fails when namespace not found",
+			target:      models.TagTargetDevice,
+			req: &requests.PushTag{
+				Name:     "production",
+				TenantID: "tenant1",
+				TargetID: "dev1",
 			},
-			expected: NewErrTagEmpty("namespaceTenantIDNoTag", errors.New("error", "", 0)),
-		},
-		{
-			name:       "fail when device don't have the tag",
-			tenantID:   "namespaceTenantID",
-			currentTag: "device2",
-			newTag:     "device1",
 			requiredMocks: func() {
-				namespace := &models.Namespace{
-					Name:     "namespaceName",
-					Owner:    "owner",
-					TenantID: "namespaceTenantID",
-				}
-
-				deviceWithTags := &models.Device{
-					UID:      "deviceWithTagsUID",
-					Name:     "deviceWithTagsName",
-					TenantID: "deviceWithTagsTenantID",
-					Tags:     []string{"device3", "device4", "device5"},
-				}
-
-				mock.On("TagsGet", ctx, namespace.TenantID).Return(deviceWithTags.Tags, len(deviceWithTags.Tags), nil).Once()
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(nil, errors.New("error")).
+					Once()
 			},
-			expected: NewErrTagNotFound("device2", nil),
+			expected: NewErrNamespaceNotFound("tenant1", errors.New("error")),
 		},
 		{
-			name:       "fail when device already have the tag",
-			tenantID:   "namespaceTenantID",
-			currentTag: "device3",
-			newTag:     "device5",
-			requiredMocks: func() {
-				namespace := &models.Namespace{
-					Name:     "namespaceName",
-					Owner:    "owner",
-					TenantID: "namespaceTenantID",
-				}
-
-				deviceWithTags := &models.Device{
-					UID:      "deviceWithTagsUID",
-					Name:     "deviceWithTagsName",
-					TenantID: "deviceWithTagsTenantID",
-					Tags:     []string{"device3", "device4", "device5"},
-				}
-
-				mock.On("TagsGet", ctx, namespace.TenantID).Return(deviceWithTags.Tags, len(deviceWithTags.Tags), nil).Once()
+			description: "fails when tag not found",
+			target:      models.TagTargetDevice,
+			req: &requests.PushTag{
+				Name:     "production",
+				TenantID: "tenant1",
+				TargetID: "dev1",
 			},
-			expected: NewErrTagDuplicated("device5", nil),
-		},
-		{
-			name:       "fail when the store function to rename the tag fails",
-			tenantID:   "namespaceTenantID",
-			currentTag: "device3",
-			newTag:     "device1",
 			requiredMocks: func() {
-				namespace := &models.Namespace{
-					Name:     "namespaceName",
-					Owner:    "owner",
-					TenantID: "namespaceTenantID",
-				}
-
-				deviceWithTags := &models.Device{
-					UID:      "deviceWithTagsUID",
-					Name:     "deviceWithTagsName",
-					TenantID: "deviceWithTagsTenantID",
-					Tags:     []string{"device3", "device4", "device5"},
-				}
-
-				mock.On("TagsGet", ctx, namespace.TenantID).Return(deviceWithTags.Tags, len(deviceWithTags.Tags), nil).Once()
-				mock.On("TagsRename", ctx, namespace.TenantID, "device3", "device1").Return(int64(0), errors.New("error", "", 0)).Once()
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(nil, errors.New("error")).
+					Once()
 			},
-			expected: errors.New("error", "", 0),
+			expected: NewErrTagNotFound("production", errors.New("error")),
 		},
 		{
-			name:       "success to rename the tag",
-			tenantID:   "namespaceTenantID",
-			currentTag: "device3",
-			newTag:     "device1",
+			description: "fails when tag push fails",
+			target:      models.TagTargetDevice,
+			req: &requests.PushTag{
+				Name:     "production",
+				TenantID: "tenant1",
+				TargetID: "dev1",
+			},
 			requiredMocks: func() {
-				namespace := &models.Namespace{
-					Name:     "namespaceName",
-					Owner:    "owner",
-					TenantID: "namespaceTenantID",
-				}
-
-				deviceWithTags := &models.Device{
-					UID:      "deviceWithTagsUID",
-					Name:     "deviceWithTagsName",
-					TenantID: "deviceWithTagsTenantID",
-					Tags:     []string{"device3", "device4", "device5"},
-				}
-
-				mock.On("TagsGet", ctx, namespace.TenantID).Return(deviceWithTags.Tags, len(deviceWithTags.Tags), nil).Once()
-				mock.On("TagsRename", ctx, namespace.TenantID, "device3", "device1").Return(int64(1), nil).Once()
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(&models.Tag{}, nil).
+					Once()
+				storeMock.
+					On("TagPushToTarget", ctx, "tenant1", "production", models.TagTargetDevice, "dev1").
+					Return(errors.New("error")).
+					Once()
+			},
+			expected: errors.New("error"),
+		},
+		{
+			description: "succeeds pushing tag",
+			target:      models.TagTargetDevice,
+			req: &requests.PushTag{
+				Name:     "production",
+				TenantID: "tenant1",
+				TargetID: "dev1",
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(&models.Tag{}, nil).
+					Once()
+				storeMock.
+					On("TagPushToTarget", ctx, "tenant1", "production", models.TagTargetDevice, "dev1").
+					Return(nil).
+					Once()
 			},
 			expected: nil,
 		},
 	}
 
+	service := NewService(storeMock, privateKey, publicKey, nil, nil)
+
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.description, func(t *testing.T) {
 			tc.requiredMocks()
 
-			locator := &mocksGeoIp.Locator{}
-			service := NewService(store.Store(mock), privateKey, publicKey, storecache.NewNullCache(), clientMock, WithLocator(locator))
-
-			err := service.RenameTag(ctx, tc.tenantID, tc.currentTag, tc.newTag)
-			assert.Equal(t, tc.expected, err)
+			err := service.PushTagTo(ctx, tc.target, tc.req)
+			require.Equal(t, tc.expected, err)
 		})
 	}
 
-	mock.AssertExpectations(t)
+	storeMock.AssertExpectations(t)
 }
 
-func TestDeleteTag(t *testing.T) {
-	mock := new(mocks.Store)
-
+func TestService_PullTagFrom(t *testing.T) {
+	storeMock := new(storemock.Store)
 	ctx := context.TODO()
 
 	cases := []struct {
-		name          string
-		tag           string
-		tenant        string
+		description   string
+		target        models.TagTarget
+		req           *requests.PullTag
 		requiredMocks func()
 		expected      error
 	}{
 		{
-			name:   "fail when tag is invalid",
-			tag:    "invalid_tag",
-			tenant: "tenant",
-			requiredMocks: func() {
+			description: "fails when namespace not found",
+			target:      models.TagTargetDevice,
+			req: &requests.PullTag{
+				Name:     "production",
+				TenantID: "tenant1",
+				TargetID: "dev1",
 			},
-			expected: NewErrTagInvalid("invalid_tag", validator.ErrStructureInvalid),
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(nil, errors.New("error")).
+					Once()
+			},
+			expected: NewErrNamespaceNotFound("tenant1", errors.New("error")),
 		},
 		{
-			name:   "fail when could not find the namespace",
-			tag:    "device1",
-			tenant: "not_found_tenant",
-			requiredMocks: func() {
-				mock.On("NamespaceGet", ctx, "not_found_tenant").Return(nil, errors.New("error", "", 0)).Once()
+			description: "fails when tag not found",
+			target:      models.TagTargetDevice,
+			req: &requests.PullTag{
+				Name:     "production",
+				TenantID: "tenant1",
+				TargetID: "dev1",
 			},
-			expected: NewErrNamespaceNotFound("not_found_tenant", errors.New("error", "", 0)),
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(nil, errors.New("error")).
+					Once()
+			},
+			expected: NewErrTagNotFound("production", errors.New("error")),
 		},
 		{
-			name:   "fail when tags are empty",
-			tag:    "device1",
-			tenant: "tenant",
-			requiredMocks: func() {
-				namespace := &models.Namespace{Name: "namespace", TenantID: "tenant"}
-
-				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(nil, 0, errors.New("error", "", 0)).Once()
+			description: "fails when tag pull fails",
+			target:      models.TagTargetDevice,
+			req: &requests.PullTag{
+				Name:     "production",
+				TenantID: "tenant1",
+				TargetID: "dev1",
 			},
-			expected: NewErrTagEmpty("tenant", errors.New("error", "", 0)),
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(&models.Tag{}, nil).
+					Once()
+				storeMock.
+					On("TagPullFromTarget", ctx, "tenant1", "production", models.TagTargetDevice, "dev1").
+					Return(errors.New("error")).
+					Once()
+			},
+			expected: errors.New("error"),
 		},
 		{
-			name:   "fail when tag does not exist",
-			tag:    "device3",
-			tenant: "tenant",
-			requiredMocks: func() {
-				namespace := &models.Namespace{Name: "namespace", TenantID: "tenant"}
-
-				device := &models.Device{
-					UID:       "uid",
-					Namespace: "namespace",
-					TenantID:  "tenant",
-					Tags:      []string{"device1", "device2"},
-				}
-
-				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(device.Tags, len(device.Tags), nil).Once()
+			description: "succeeds pulling tag",
+			target:      models.TagTargetDevice,
+			req: &requests.PullTag{
+				Name:     "production",
+				TenantID: "tenant1",
+				TargetID: "dev1",
 			},
-			expected: NewErrTagNotFound("device3", nil),
-		},
-		{
-			name:   "fail when the store function to delete the tag fails",
-			tag:    "device1",
-			tenant: "tenant",
 			requiredMocks: func() {
-				namespace := &models.Namespace{Name: "namespace", TenantID: "tenant"}
-
-				device := &models.Device{
-					UID:       "uid",
-					Namespace: "namespace",
-					TenantID:  "tenant",
-					Tags:      []string{"device1", "device2"},
-				}
-
-				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(device.Tags, len(device.Tags), nil).Once()
-				mock.On("TagsDelete", ctx, "tenant", "device1").Return(int64(0), errors.New("error", "", 0)).Once()
-			},
-			expected: errors.New("error", "", 0),
-		},
-		{
-			name:   "success to delete tags",
-			tag:    "device1",
-			tenant: "tenant",
-			requiredMocks: func() {
-				namespace := &models.Namespace{Name: "namespace", TenantID: "tenant"}
-
-				device := &models.Device{
-					UID:       "uid",
-					Namespace: "namespace",
-					TenantID:  "tenant",
-					Tags:      []string{"device1", "device2"},
-				}
-
-				mock.On("NamespaceGet", ctx, "tenant").Return(namespace, nil).Once()
-				mock.On("TagsGet", ctx, "tenant").Return(device.Tags, len(device.Tags), nil).Once()
-				mock.On("TagsDelete", ctx, "tenant", "device1").Return(int64(1), nil).Once()
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(&models.Tag{}, nil).
+					Once()
+				storeMock.
+					On("TagPullFromTarget", ctx, "tenant1", "production", models.TagTargetDevice, "dev1").
+					Return(nil).
+					Once()
 			},
 			expected: nil,
 		},
 	}
 
+	service := NewService(storeMock, privateKey, publicKey, nil, nil)
+
 	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.description, func(t *testing.T) {
 			tc.requiredMocks()
 
-			locator := &mocksGeoIp.Locator{}
-			service := NewService(store.Store(mock), privateKey, publicKey, storecache.NewNullCache(), clientMock, WithLocator(locator))
-
-			err := service.DeleteTag(ctx, tc.tenant, tc.tag)
-			assert.Equal(t, tc.expected, err)
+			err := service.PullTagFrom(ctx, tc.target, tc.req)
+			require.Equal(t, tc.expected, err)
 		})
 	}
 
-	mock.AssertExpectations(t)
+	storeMock.AssertExpectations(t)
+}
+
+func TestService_ListTags(t *testing.T) {
+	storeMock := new(storemock.Store)
+	ctx := context.TODO()
+
+	type Expected struct {
+		tags       []models.Tag
+		totalCount int
+		err        error
+	}
+
+	cases := []struct {
+		description   string
+		req           *requests.ListTags
+		requiredMocks func()
+		expected      Expected
+	}{
+		{
+			description: "fails when namespace not found",
+			req: &requests.ListTags{
+				TenantID: "tenant1",
+				Paginator: query.Paginator{
+					Page:    1,
+					PerPage: 10,
+				},
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(nil, errors.New("error")).
+					Once()
+			},
+			expected: Expected{
+				tags:       []models.Tag{},
+				totalCount: 0,
+				err:        NewErrNamespaceNotFound("tenant1", errors.New("error")),
+			},
+		},
+		{
+			description: "fails when tag list fails",
+			req: &requests.ListTags{
+				TenantID: "tenant1",
+				Paginator: query.Paginator{
+					Page:    1,
+					PerPage: 10,
+				},
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagList", ctx, "tenant1", query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{}).
+					Return(nil, 0, errors.New("error")).
+					Once()
+			},
+			expected: Expected{
+				tags:       []models.Tag{},
+				totalCount: 0,
+				err:        errors.New("error"),
+			},
+		},
+		{
+			description: "succeeds listing tags",
+			req: &requests.ListTags{
+				TenantID: "tenant1",
+				Paginator: query.Paginator{
+					Page:    1,
+					PerPage: 10,
+				},
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagList", ctx, "tenant1", query.Paginator{Page: 1, PerPage: 10}, query.Filters{}, query.Sorter{}).
+					Return([]models.Tag{{Name: "production", TenantID: "tenant1"}}, 1, nil).
+					Once()
+			},
+			expected: Expected{
+				tags:       []models.Tag{{Name: "production", TenantID: "tenant1"}},
+				totalCount: 1,
+				err:        nil,
+			},
+		},
+	}
+
+	service := NewService(storeMock, privateKey, publicKey, nil, nil)
+
+	for _, tc := range cases {
+		t.Run(tc.description, func(t *testing.T) {
+			tc.requiredMocks()
+
+			tags, count, err := service.ListTags(ctx, tc.req)
+			require.Equal(t, tc.expected, Expected{tags, count, err})
+		})
+	}
+
+	storeMock.AssertExpectations(t)
+}
+
+func TestService_UpdateTag(t *testing.T) {
+	storeMock := new(storemock.Store)
+	ctx := context.TODO()
+
+	type Expected struct {
+		conflicts []string
+		err       error
+	}
+
+	cases := []struct {
+		description   string
+		req           *requests.UpdateTag
+		requiredMocks func()
+		expected      Expected
+	}{
+		{
+			description: "fails when namespace not found",
+			req: &requests.UpdateTag{
+				Name:     "production",
+				NewName:  "staging",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(nil, errors.New("error")).
+					Once()
+			},
+			expected: Expected{
+				conflicts: []string{},
+				err:       NewErrNamespaceNotFound("tenant1", errors.New("error")),
+			},
+		},
+		{
+			description: "fails when tag not found",
+			req: &requests.UpdateTag{
+				Name:     "production",
+				NewName:  "staging",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(nil, errors.New("error")).
+					Once()
+			},
+			expected: Expected{
+				conflicts: []string{},
+				err:       NewErrTagNotFound("production", errors.New("error")),
+			},
+		},
+		{
+			description: "fails when new name conflicts",
+			req: &requests.UpdateTag{
+				Name:     "production",
+				NewName:  "staging",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(&models.Tag{}, nil).
+					Once()
+				storeMock.
+					On("TagConflicts", ctx, "tenant1", &models.TagConflicts{Name: "staging"}).
+					Return([]string{"name"}, true, nil).
+					Once()
+			},
+			expected: Expected{
+				conflicts: []string{"name"},
+				err:       nil,
+			},
+		},
+		{
+			description: "fails when tag update fails",
+			req: &requests.UpdateTag{
+				Name:     "production",
+				NewName:  "staging",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(&models.Tag{}, nil).
+					Once()
+				storeMock.
+					On("TagConflicts", ctx, "tenant1", &models.TagConflicts{Name: "staging"}).
+					Return([]string{}, false, nil).
+					Once()
+				storeMock.
+					On("TagUpdate", ctx, "tenant1", "production", &models.TagChanges{Name: "staging"}).
+					Return(errors.New("error")).
+					Once()
+			},
+			expected: Expected{
+				conflicts: nil,
+				err:       errors.New("error"),
+			},
+		},
+		{
+			description: "succeeds updating tag",
+			req: &requests.UpdateTag{
+				Name:     "production",
+				NewName:  "staging",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(&models.Tag{}, nil).
+					Once()
+				storeMock.
+					On("TagConflicts", ctx, "tenant1", &models.TagConflicts{Name: "staging"}).
+					Return([]string{}, false, nil).
+					Once()
+				storeMock.
+					On("TagUpdate", ctx, "tenant1", "production", &models.TagChanges{Name: "staging"}).
+					Return(nil).
+					Once()
+			},
+			expected: Expected{
+				conflicts: []string{},
+				err:       nil,
+			},
+		},
+	}
+
+	service := NewService(storeMock, privateKey, publicKey, nil, nil)
+
+	for _, tc := range cases {
+		t.Run(tc.description, func(t *testing.T) {
+			tc.requiredMocks()
+
+			conflicts, err := service.UpdateTag(ctx, tc.req)
+			require.Equal(t, tc.expected, Expected{conflicts, err})
+		})
+	}
+
+	storeMock.AssertExpectations(t)
+}
+
+func TestService_DeleteTag(t *testing.T) {
+	storeMock := new(storemock.Store)
+	ctx := context.TODO()
+
+	cases := []struct {
+		description   string
+		req           *requests.DeleteTag
+		requiredMocks func()
+		expected      error
+	}{
+		{
+			description: "fails when namespace not found",
+			req: &requests.DeleteTag{
+				Name:     "production",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(nil, errors.New("error")).
+					Once()
+			},
+			expected: NewErrNamespaceNotFound("tenant1", errors.New("error")),
+		},
+		{
+			description: "fails when tag not found",
+			req: &requests.DeleteTag{
+				Name:     "production",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(nil, errors.New("error")).
+					Once()
+			},
+			expected: NewErrTagNotFound("production", errors.New("error")),
+		},
+		{
+			description: "fails when transaction fails",
+			req: &requests.DeleteTag{
+				Name:     "production",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(&models.Tag{}, nil).
+					Once()
+				storeMock.
+					On("WithTransaction", ctx, mock.AnythingOfType("store.TransactionCb")).
+					Return(errors.New("error")).
+					Once()
+			},
+			expected: errors.New("error"),
+		},
+		{
+			description: "succeeds deleting tag",
+			req: &requests.DeleteTag{
+				Name:     "production",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				storeMock.
+					On("NamespaceGet", ctx, "tenant1").
+					Return(&models.Namespace{}, nil).
+					Once()
+				storeMock.
+					On("TagGetByName", ctx, "tenant1", "production").
+					Return(&models.Tag{}, nil).
+					Once()
+				storeMock.
+					On("WithTransaction", ctx, mock.AnythingOfType("store.TransactionCb")).
+					Return(nil).
+					Once()
+			},
+			expected: nil,
+		},
+	}
+
+	service := NewService(storeMock, privateKey, publicKey, nil, nil)
+
+	for _, tc := range cases {
+		t.Run(tc.description, func(t *testing.T) {
+			tc.requiredMocks()
+
+			err := service.DeleteTag(ctx, tc.req)
+			require.Equal(t, tc.expected, err)
+		})
+	}
+
+	storeMock.AssertExpectations(t)
+}
+
+func TestService_deleteTagCallback(t *testing.T) {
+	storeMock := new(storemock.Store)
+	ctx := context.TODO()
+
+	cases := []struct {
+		description   string
+		req           *requests.DeleteTag
+		requiredMocks func()
+		expected      error
+	}{
+		{
+			description: "fails when tag pull fails",
+			req: &requests.DeleteTag{
+				Name:     "production",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				for _, target := range models.TagTargets() {
+					storeMock.
+						On("TagPullFromTarget", ctx, "tenant1", "production", target).
+						Return(errors.New("error")).
+						Once()
+
+					break
+				}
+			},
+			expected: errors.New("error"),
+		},
+		{
+			description: "fails when tag delete fails",
+			req: &requests.DeleteTag{
+				Name:     "production",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				for _, target := range models.TagTargets() {
+					storeMock.
+						On("TagPullFromTarget", ctx, "tenant1", "production", target).
+						Return(nil).
+						Once()
+				}
+
+				storeMock.
+					On("TagDelete", ctx, "tenant1", "production").
+					Return(errors.New("error")).
+					Once()
+			},
+			expected: errors.New("error"),
+		},
+		{
+			description: "succeeds",
+			req: &requests.DeleteTag{
+				Name:     "production",
+				TenantID: "tenant1",
+			},
+			requiredMocks: func() {
+				for _, target := range models.TagTargets() {
+					storeMock.
+						On("TagPullFromTarget", ctx, "tenant1", "production", target).
+						Return(nil).
+						Once()
+				}
+
+				storeMock.
+					On("TagDelete", ctx, "tenant1", "production").
+					Return(nil).
+					Once()
+			},
+			expected: nil,
+		},
+	}
+
+	service := NewService(storeMock, privateKey, publicKey, nil, nil)
+
+	for _, tc := range cases {
+		t.Run(tc.description, func(t *testing.T) {
+			tc.requiredMocks()
+
+			callback := service.deleteTagCallback(tc.req)
+			require.Equal(t, tc.expected, callback(ctx))
+		})
+	}
+
+	storeMock.AssertExpectations(t)
 }
