@@ -17,8 +17,6 @@ const (
 	CreateSessionURL    = "/sessions"
 	FinishSessionURL    = "/sessions/:uid/finish"
 	KeepAliveSessionURL = "/sessions/:uid/keepalive"
-	RecordSessionURL    = "/sessions/:uid/record"
-	PlaySessionURL      = "/sessions/:uid/play"
 	EventsSessionsURL   = "/sessions/:uid/events"
 )
 
@@ -123,18 +121,6 @@ func (h *Handler) KeepAliveSession(c gateway.Context) error {
 	return h.service.KeepAliveSession(c.Ctx(), models.UID(req.UID))
 }
 
-func (h *Handler) RecordSession(c gateway.Context) error {
-	return c.NoContent(http.StatusOK)
-}
-
-func (h *Handler) PlaySession(c gateway.Context) error {
-	return c.NoContent(http.StatusOK)
-}
-
-func (h *Handler) DeleteRecordedSession(c gateway.Context) error {
-	return c.NoContent(http.StatusOK)
-}
-
 func (h *Handler) EventSession(c gateway.Context) error {
 	var req requests.SessionEvent
 	if err := c.Bind(&req); err != nil {
@@ -149,5 +135,6 @@ func (h *Handler) EventSession(c gateway.Context) error {
 		Type:      req.Type,
 		Timestamp: req.Timestamp,
 		Data:      req.Data,
+		Seat:      req.Seat,
 	})
 }

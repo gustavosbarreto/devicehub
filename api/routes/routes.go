@@ -62,7 +62,6 @@ func NewRouter(service services.Service, opts ...Option) *echo.Echo {
 	internalAPI.POST(FinishSessionURL, gateway.Handler(handler.FinishSession))
 	internalAPI.POST(KeepAliveSessionURL, gateway.Handler(handler.KeepAliveSession))
 	internalAPI.PATCH(UpdateSessionURL, gateway.Handler(handler.UpdateSession))
-	internalAPI.POST(RecordSessionURL, gateway.Handler(handler.RecordSession))
 
 	internalAPI.GET(GetPublicKeyURL, gateway.Handler(handler.GetPublicKey))
 	internalAPI.POST(CreatePrivateKeyURL, gateway.Handler(handler.CreatePrivateKey))
@@ -107,8 +106,6 @@ func NewRouter(service services.Service, opts ...Option) *echo.Echo {
 
 	publicAPI.GET(GetSessionsURL, routesmiddleware.Authorize(gateway.Handler(handler.GetSessionList)))
 	publicAPI.GET(GetSessionURL, routesmiddleware.Authorize(gateway.Handler(handler.GetSession)))
-	publicAPI.GET(PlaySessionURL, gateway.Handler(handler.PlaySession))
-	publicAPI.DELETE(RecordSessionURL, gateway.Handler(handler.DeleteRecordedSession))
 
 	publicAPI.GET(GetStatsURL, routesmiddleware.Authorize(gateway.Handler(handler.GetStats)))
 	publicAPI.GET(GetSystemInfoURL, gateway.Handler(handler.GetSystemInfo))

@@ -65,7 +65,22 @@ func DefaultDirectTCPIPHandler(server *gliderssh.Server, conn *gossh.ServerConn,
 		return
 	}
 
-	sess.Event(DirectTCPIPChannel, data) //nolint:errcheck
+	seat, err := sess.NewSeat()
+	if err != nil {
+		newChan.Reject(gossh.ConnectionFailed, "failed to create the seat"+err.Error()) //nolint:errcheck
+		log.WithError(err).WithFields(log.Fields{
+			"username":    sess.Target.Username,
+			"sshid":       sess.Target.Data,
+			"origin_port": data.OriginAddr,
+			"origin_addr": data.OriginPort,
+			"dest_port":   data.DestPort,
+			"dest_addr":   data.DestAddr,
+		}).Error("failed to create the seat")
+
+		return
+	}
+
+	sess.Event(DirectTCPIPChannel, data, seat) //nolint:errcheck
 
 	dest := net.JoinHostPort(data.DestAddr, strconv.FormatInt(int64(data.DestPort), 10))
 

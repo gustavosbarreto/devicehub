@@ -275,8 +275,11 @@ func (s *Store) SessionEvent(ctx context.Context, uid models.UID, event *models.
 	if _, err := s.db.Collection("sessions").UpdateOne(ctx,
 		bson.M{"uid": uid},
 		bson.M{
-			"$addToSet": bson.M{"events.types": event.Type},
-			"$push":     bson.M{"events.items": event},
+			"$addToSet": bson.M{
+				"events.types": event.Type,
+				"events.seats": event.Seat,
+			},
+			"$push": bson.M{"events.items": event},
 		},
 	); err != nil {
 		return FromMongoError(err)

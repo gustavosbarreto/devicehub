@@ -50,4 +50,10 @@ type SessionEvent struct {
 	Type      string    `json:"type" validate:"required"`
 	Timestamp time.Time `json:"timestamp" validate:"required"`
 	Data      any       `json:"data" validate:"required"`
+	Seat      int       `json:"seat" validate:"min=0"`
+}
+
+type SessionSeat struct {
+	SessionIDParam
+	ID int `json:"id" bson:"id,omitempty"`
 }
