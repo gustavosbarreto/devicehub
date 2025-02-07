@@ -33,19 +33,9 @@
         </div>
 
         <div class="mt-2" v-if="showLoginForm">
-          <v-tabs align-tabs="center" color="primary" v-model="tabActive">
-            <v-tab value="Password" block data-test="password-tab" @click="resetFieldValidation">Password</v-tab>
-            <v-tab
-              value="PrivateKey"
-              @click="resetFieldValidation"
-              block
-              data-test="private-key-tab"
-            >Private Key</v-tab
-            >
-          </v-tabs>
 
           <v-card-text>
-            <v-window v-model="tabActive">
+            <v-window>
               <v-window-item value="Password">
                 <v-form lazy-validation @submit.prevent="connectWithPassword()">
                   <v-container>
@@ -66,12 +56,32 @@
                     </v-row>
                     <v-row>
                       <v-col>
+                        <v-select
+                          v-model="authenticationMethod"
+                          :items="['Password', 'Private Key']"
+                          label="Authentication method"
+                          data-test="auth-method-select"
+                        />
+                      </v-col>
+                    </v-row>
+                    <v-row>
+                      <v-col>
+                        <v-select
+                          v-model="privateKey"
+                          v-if="authenticationMethod === 'Private Key'"
+                          :items="nameOfPrivateKeys"
+                          item-text="name"
+                          item-value="data"
+                          label="Private Key"
+                          hint="Select a private key file for authentication"
+                          persistent-hint
+                          data-test="privatekeys-select"
+                        />
                         <v-text-field
                           color="primary"
-                          :append-inner-icon="
-                            showPassword ? 'mdi-eye' : 'mdi-eye-off'
-                          "
+                          :append-inner-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
                           v-model="password"
+                          v-if="authenticationMethod === 'Password'"
                           :error-messages="passwordError"
                           label="Password"
                           required
@@ -97,11 +107,12 @@
                     >
                       Connect
                     </v-btn>
+                    <v-spacer />
                   </v-card-actions>
                 </v-form>
               </v-window-item>
 
-              <v-window-item value="PrivateKey">
+              <v-window-item value="Private Key">
                 <v-form
                   lazy-validation
                   @submit.prevent="connectWithPrivateKey()">
@@ -118,20 +129,6 @@
                           persistent-placeholder
                           :validate-on-blur="true"
                           data-test="username-field-pk"
-                        />
-                      </v-col>
-                    </v-row>
-                    <v-row>
-                      <v-col>
-                        <v-select
-                          v-model="privateKey"
-                          :items="nameOfPrivateKeys"
-                          item-text="name"
-                          item-value="data"
-                          label="Private Key"
-                          hint="Select a private key file for authentication"
-                          persistent-hint
-                          data-test="privatekeys-select"
                         />
                       </v-col>
                     </v-row>
@@ -215,7 +212,7 @@ const props = defineProps({
 });
 const store = useStore();
 const route = useRoute();
-const tabActive = ref("Password");
+const authenticationMethod = ref("Password");
 const showPassword = ref(false);
 const showLoginForm = ref(true);
 const privateKey = ref("");

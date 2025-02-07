@@ -150,18 +150,15 @@ describe("Terminal Dialog", async () => {
 
     expect(dialog.find('[data-test="terminal-card"]').exists()).toBe(true);
     expect(dialog.find('[data-test="close-btn"]').exists()).toBe(true);
-    expect(dialog.find('[data-test="password-tab"]').exists()).toBe(true);
-    expect(dialog.find('[data-test="private-key-tab"]').exists()).toBe(true);
     expect(dialog.find('[data-test="username-field"]').exists()).toBe(true);
     expect(dialog.find('[data-test="password-field"]').exists()).toBe(true);
     expect(dialog.find('[data-test="connect2-btn"]').exists()).toBe(true);
+    expect(dialog.find('[data-test="auth-method-select"]').exists()).toBe(true);
+    await wrapper.findComponent('[data-test="auth-method-select"]').setValue("Private Key");
+    await flushPromises();
 
-    // Change tab to Private Key authentication
-    await dialog.find('[data-test="private-key-tab"]').trigger("click");
-
-    expect(dialog.find('[data-test="username-field-pk"]').exists()).toBe(true);
+    expect(dialog.find('[data-test="password-field"]').exists()).toBe(false);
     expect(dialog.find('[data-test="privatekeys-select"]').exists()).toBe(true);
-    expect(dialog.find('[data-test="connect2-btn-pk"]').exists()).toBe(true);
   });
 
   it("sets showLoginForm to true when showTerminal changes to true", async () => {
