@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	gliderssh "github.com/gliderlabs/ssh"
@@ -95,6 +96,12 @@ type Session struct {
 	tunnel *httptunnel.Tunnel
 
 	once *sync.Once
+
+	// Seat is a counter of how many passengers a session has. It's used on the record session feature.
+	//
+	// A passenger is, in a multiplexed SSH session, the subsequent SSH sessions that connect to the same server using
+	// the already established master connection.
+	Seat *atomic.Int32
 
 	Data
 }
@@ -186,6 +193,7 @@ func NewSession(ctx gliderssh.Context, tunnel *httptunnel.Tunnel, cache cache.Ca
 			SSHID:     fmt.Sprintf("%s@%s.%s", target.Username, namespace, hostname),
 		},
 		once: new(sync.Once),
+		Seat: new(atomic.Int32),
 	}
 
 	session.Data.Lookup["username"] = target.Username
@@ -424,8 +432,8 @@ func (s *Session) Auth(ctx gliderssh.Context, auth Auth) error {
 	return nil
 }
 
-func (s *Session) Record(ctx context.Context, url string) (*Camera, error) {
-	conn, err := s.api.RecordSession(ctx, s.UID, url)
+func (s *Session) Record(ctx context.Context, url string, seat int) (*Camera, error) {
+	conn, err := s.api.RecordSession(ctx, s.UID, seat, url)
 	if err != nil {
 		log.WithError(err).Error("failed to start the record session process")
 
@@ -435,7 +443,24 @@ func (s *Session) Record(ctx context.Context, url string) (*Camera, error) {
 	return NewCamera(conn), nil
 }
 
-func Event[D any](sess *Session, t string, data []byte) {
+func (s *Session) NewSeat() (int, error) {
+	seat := int(s.Seat.Load())
+	defer s.Seat.Add(1)
+
+	return seat, nil
+}
+
+// Events register an event to the session.
+func (s *Session) Event(t string, data any, seat int) {
+	go s.api.EventSession(s.UID, &models.SessionEvent{ //nolint:errcheck
+		Type:      t,
+		Timestamp: clock.Now(),
+		Data:      data,
+		Seat:      seat,
+	})
+}
+
+func Event[D any](sess *Session, t string, data []byte, seat int) {
 	d := new(D)
 	if err := gossh.Unmarshal(data, d); err != nil {
 		return
@@ -445,15 +470,7 @@ func Event[D any](sess *Session, t string, data []byte) {
 		Type:      t,
 		Timestamp: clock.Now(),
 		Data:      d,
-	})
-}
-
-// Events register a event to the session.
-func (s *Session) Event(t string, data any) {
-	go s.api.EventSession(s.UID, &models.SessionEvent{ //nolint:errcheck
-		Type:      t,
-		Timestamp: clock.Now(),
-		Data:      data,
+		Seat:      seat,
 	})
 }
 

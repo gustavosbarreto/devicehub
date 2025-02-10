@@ -18,7 +18,7 @@ type Recorder struct {
 	channel gossh.Channel
 }
 
-func NewRecorder(channel gossh.Channel, sess *session.Session, camera *session.Camera) (io.WriteCloser, error) {
+func NewRecorder(channel gossh.Channel, sess *session.Session, camera *session.Camera, seat int) (io.WriteCloser, error) {
 	// NOTE: The queue's size is a random number.
 	queue := make(chan string, 100)
 
@@ -34,6 +34,7 @@ func NewRecorder(channel gossh.Channel, sess *session.Session, camera *session.C
 
 			if err := camera.WriteFrame(&models.SessionRecorded{ //nolint:errcheck
 				UID:       sess.UID,
+				Seat:      seat,
 				Namespace: sess.Lookup["domain"],
 				Message:   msg,
 				Width:     int(sess.Pty.Columns),
@@ -94,7 +95,7 @@ func (c *Recorder) Close() error {
 
 // pipe pipes data between client and agent, and vice versa, recording each frame when ShellHub instance are Cloud or
 // Enterprise.
-func pipe(ctx gliderssh.Context, sess *session.Session, client gossh.Channel, agent gossh.Channel) {
+func pipe(ctx gliderssh.Context, sess *session.Session, client gossh.Channel, agent gossh.Channel, seat int) {
 	defer log.
 		WithFields(log.Fields{"session": sess.UID, "sshid": sess.SSHID}).
 		Trace("data pipe between client and agent has done")
@@ -117,12 +118,12 @@ func pipe(ctx gliderssh.Context, sess *session.Session, client gossh.Channel, ag
 				goto normal
 			}
 
-			camera, err := sess.Record(ctx, recordURL)
+			camera, err := sess.Record(ctx, recordURL, seat)
 			if err != nil {
 				goto normal
 			}
 
-			recorder, err := NewRecorder(client, sess, camera)
+			recorder, err := NewRecorder(client, sess, camera, seat)
 			if err != nil {
 				log.WithError(err).
 					WithFields(log.Fields{"session": sess.UID, "sshid": sess.SSHID, "record_url": recordURL}).

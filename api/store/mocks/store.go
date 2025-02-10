@@ -1573,6 +1573,20 @@ func (_m *Store) SessionList(ctx context.Context, paginator query.Paginator) ([]
 	return r0, r1, r2
 }
 
+// SessionSeat provides a mock function with given fields: ctx, uid, seat
+func (_m *Store) SessionSeat(ctx context.Context, uid models.UID, seat int) error {
+	ret := _m.Called(ctx, uid, seat)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, models.UID, int) error); ok {
+		r0 = rf(ctx, uid, seat)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // SessionSetLastSeen provides a mock function with given fields: ctx, uid
 func (_m *Store) SessionSetLastSeen(ctx context.Context, uid models.UID) error {
 	ret := _m.Called(ctx, uid)

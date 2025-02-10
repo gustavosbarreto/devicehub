@@ -29,12 +29,13 @@ type sessionAPI interface {
 	KeepAliveSession(uid string) []error
 
 	// RecordSession creates a WebSocket client connection to the URL.
-	RecordSession(ctx context.Context, uid string, recordURL string) (*websocket.Conn, error)
+	RecordSession(ctx context.Context, uid string, seat int, recordURL string) (*websocket.Conn, error)
 
 	// UpdateSession updates some fields of [models.Session] using [models.SessionUpdate].
 	UpdateSession(uid string, model *models.SessionUpdate) error
 
-	EventSession(uid string, log *models.SessionEvent) error
+	// EventSession inserts a new event into a session.
+	EventSession(uid string, event *models.SessionEvent) error
 }
 
 func (c *client) SessionCreate(session requests.SessionCreate) error {
@@ -88,14 +89,15 @@ func (c *client) KeepAliveSession(uid string) []error {
 	return errors
 }
 
-func (c *client) RecordSession(ctx context.Context, uid string, recordURL string) (*websocket.Conn, error) {
+func (c *client) RecordSession(ctx context.Context, uid string, seat int, recordURL string) (*websocket.Conn, error) {
 	connection, _, err := websocket.
 		DefaultDialer.
 		DialContext(
 			ctx,
-			fmt.Sprintf("ws://%s/internal/sessions/%s/record",
+			fmt.Sprintf("ws://%s/internal/sessions/%s/records/%d",
 				recordURL,
 				uid,
+				seat,
 			),
 			nil)
 	if err != nil {
@@ -124,14 +126,14 @@ func (c *client) UpdateSession(uid string, model *models.SessionUpdate) error {
 	return nil
 }
 
-func (c *client) EventSession(uid string, log *models.SessionEvent) error {
+func (c *client) EventSession(uid string, event *models.SessionEvent) error {
 	res, err := c.http.
 		R().
 		SetPathParams(map[string]string{
-			"tenant": uid,
+			"uid": uid,
 		}).
-		SetBody(log).
-		Post("/internal/sessions/{tenant}/events")
+		SetBody(event).
+		Post("/internal/sessions/{uid}/events")
 	if err != nil {
 		return errors.Join(errors.New("failed to log the event on the session due error"), err)
 	}

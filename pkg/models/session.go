@@ -53,6 +53,7 @@ type Status struct {
 
 type SessionRecorded struct {
 	UID       string `json:"uid"`
+	Seat      int    `json:"seat"`
 	Namespace string `json:"namespace" bson:"namespace"`
 	Message   string `json:"message" bson:"message"`
 	Width     int    `json:"width" bson:"width,omitempty"`
@@ -72,6 +73,8 @@ type SessionEvent struct {
 	Timestamp time.Time `json:"timestamp" bson:"timestamp"`
 	// Data is a generic structure containing data of the event, normally the unmarshaling data of the request.
 	Data any `json:"data" bson:"data"`
+	// Seat is the seat where the event occurred.
+	Seat int `json:"seat" bson:"seat"`
 }
 
 // SessionEvents stores the events registered in a session.
@@ -80,4 +83,12 @@ type SessionEvents struct {
 	Types []string `json:"types" bson:"types,omitempty"`
 	// Items contains a list of events happened in a session.
 	Items []SessionEvent `json:"items" bson:"items,omitempty"`
+	// Seats contains a list of seats of events.
+	Seats []int `json:"seats" bson:"seats,omitempty"`
+}
+
+// SessionSeat stores a session's seat.
+type SessionSeat struct {
+	// ID is the identifier of session's seat.
+	ID int `json:"id" bson:"id,omitempty"`
 }

@@ -88,7 +88,7 @@ func DefaultSessionHandler() gliderssh.ChannelHandler {
 
 		go func() {
 			// NOTICE: As [gossh.ServerConn] is shared by all channels calls, close it after a channel close block any
-			// other channel involkation. To avoid it, we wait for the connection be closed to finish the sesison.
+			// other channel invocation. To avoid it, we wait for the connection to be closed to finish the session.
 			conn.Wait() //nolint:errcheck
 
 			sess.Finish() //nolint:errcheck
@@ -130,9 +130,16 @@ func DefaultSessionHandler() gliderssh.ChannelHandler {
 
 		defer agent.Close()
 
-		go pipe(ctx, sess, client, agent)
+		seat, err := sess.NewSeat()
+		if err != nil {
+			reject(err, "failed to create a new set on the SSH session")
 
-		// TODO: Add middleware to block a certain type of requests.
+			return
+		}
+
+		go pipe(ctx, sess, client, agent, seat)
+
+		// TODO: Add middleware to block certain types of requests.
 		for {
 			select {
 			case <-ctx.Done():
@@ -181,11 +188,11 @@ func DefaultSessionHandler() gliderssh.ChannelHandler {
 
 				switch req.Type {
 				case ExitStatusRequest:
-					session.Event[session.Status](sess, req.Type, req.Payload)
+					session.Event[session.Status](sess, req.Type, req.Payload, seat)
 				case ExitSignalRequest:
-					session.Event[session.Signal](sess, req.Type, req.Payload)
+					session.Event[session.Signal](sess, req.Type, req.Payload, seat)
 				default:
-					sess.Event(req.Type, req.Payload)
+					sess.Event(req.Type, req.Payload, seat)
 				}
 
 				logger.Debugf("request from agent to client: %s", req.Type)
@@ -217,9 +224,9 @@ func DefaultSessionHandler() gliderssh.ChannelHandler {
 						}
 					}
 
-					sess.Event(req.Type, req.Payload)
+					sess.Event(req.Type, req.Payload, seat)
 				case ExecRequestType, SubsystemRequestType:
-					session.Event[session.Command](sess, req.Type, req.Payload)
+					session.Event[session.Command](sess, req.Type, req.Payload, seat)
 
 					sess.Type = ExecRequestType
 				case PtyRequestType:
@@ -231,7 +238,7 @@ func DefaultSessionHandler() gliderssh.ChannelHandler {
 
 					sess.Pty = pty
 
-					sess.Event(req.Type, pty) //nolint:errcheck
+					sess.Event(req.Type, pty, seat) //nolint:errcheck
 				case WindowChangeRequestType:
 					var dimensions session.Dimensions
 
@@ -242,11 +249,11 @@ func DefaultSessionHandler() gliderssh.ChannelHandler {
 					sess.Pty.Columns = dimensions.Columns
 					sess.Pty.Rows = dimensions.Rows
 
-					sess.Event(req.Type, dimensions) //nolint:errcheck
+					sess.Event(req.Type, dimensions, seat) //nolint:errcheck
 				case AuthRequestOpenSSHRequest:
 					gliderssh.SetAgentRequested(ctx)
 
-					sess.Event(req.Type, req.Payload)
+					sess.Event(req.Type, req.Payload, seat)
 					go func() {
 						clientConn := ctx.Value(gliderssh.ContextKeyConn).(gossh.Conn)
 						agentChannels := sess.AgentClient.HandleChannelOpen(AuthRequestOpenSSHChannel)
@@ -285,7 +292,7 @@ func DefaultSessionHandler() gliderssh.ChannelHandler {
 						}
 					}()
 				default:
-					sess.Event(req.Type, req.Payload)
+					sess.Event(req.Type, req.Payload, seat)
 				}
 
 				logger.Debugf("request from client to agent: %s", req.Type)
