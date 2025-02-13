@@ -92,9 +92,6 @@ describe("Settings Namespace", () => {
     wrapper = mount(SettingProfile, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

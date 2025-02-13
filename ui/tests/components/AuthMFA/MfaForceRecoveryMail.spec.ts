@@ -72,9 +72,6 @@ describe("Force Adding a Recovery Mail", () => {
     wrapper = mount(MfaForceRecoveryMail, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

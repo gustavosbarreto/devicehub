@@ -82,9 +82,6 @@ describe("Namespace Invite Dialog (Invalid User)", () => {
     wrapper = mount(NamespaceInviteCard, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });
@@ -124,9 +121,6 @@ describe("Namespace Invite Dialog", () => {
     wrapper = mount(NamespaceInviteCard, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

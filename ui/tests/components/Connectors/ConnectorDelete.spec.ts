@@ -85,9 +85,6 @@ describe("Connector Delete", () => {
     wrapper = mount(ConnectorDelete, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
       attachTo: el,
     });

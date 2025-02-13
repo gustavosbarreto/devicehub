@@ -87,9 +87,6 @@ describe("Connector Form", () => {
     wrapper = mount(ConnectorForm, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
       attachTo: el,
     });

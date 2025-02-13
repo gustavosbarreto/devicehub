@@ -85,9 +85,6 @@ describe("Private Key Edit", () => {
     wrapper = mount(PrivateKeyEdit, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
       props: {
         keyObject: mockObject,

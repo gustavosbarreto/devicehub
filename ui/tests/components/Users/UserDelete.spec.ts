@@ -60,9 +60,6 @@ describe("User Delete", () => {
     wrapper = mount(UserDelete, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

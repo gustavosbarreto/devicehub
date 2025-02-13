@@ -60,6 +60,17 @@ describe("AppBar Component", () => {
   envVariables.isCloud = true;
 
   beforeEach(async () => {
+    window.matchMedia = vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+
     vi.useFakeTimers();
     localStorage.setItem("tenant", "fake-tenant-data");
 
@@ -73,9 +84,6 @@ describe("AppBar Component", () => {
     wrapper = mount(Component, {
       global: {
         plugins: [[store, key], vuetify, router],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
         components: {
           "v-layout": VLayout,
           AppBar,

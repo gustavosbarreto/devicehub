@@ -8,11 +8,7 @@ export const fetchPublicKeys = async (
   page : number,
   perPage: number,
   filter : string,
-) => {
-  if (filter) return sshApi.getPublicKeys(filter, page, perPage);
-
-  return sshApi.getPublicKeys(filter, page, perPage);
-};
+) => sshApi.getPublicKeys(filter, page, perPage);
 
 export const getPublicKey = async (fingerprint : string) => http().get(`/sshkeys/public-keys/${fingerprint}`); // TODO
 

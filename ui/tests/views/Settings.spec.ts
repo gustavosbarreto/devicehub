@@ -16,9 +16,6 @@ describe("Settings View", () => {
     wrapper = mount(Settings, {
       global: {
         plugins: [[store, key], vuetify, router],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

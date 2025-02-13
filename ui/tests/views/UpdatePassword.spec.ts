@@ -28,9 +28,6 @@ describe("Update Password", () => {
     wrapper = mount(UpdatePassword, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

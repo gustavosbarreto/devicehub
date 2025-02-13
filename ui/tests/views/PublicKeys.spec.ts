@@ -109,9 +109,6 @@ describe("Public Keys", () => {
     wrapper = mount(PublicKeys, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

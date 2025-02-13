@@ -73,9 +73,6 @@ describe("Firewall Rule Delete", () => {
     wrapper = mount(FirewallRuleDelete, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

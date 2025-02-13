@@ -154,9 +154,6 @@ describe("Device Delete", () => {
     wrapper = mount(DeviceDelete, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
       attachTo: el,
     });

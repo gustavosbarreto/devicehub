@@ -33,9 +33,6 @@ describe("Recovery Helper", () => {
     wrapper = mount(RecoveryHelper, {
       global: {
         plugins: [[store, key], vuetify, router],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
       attachTo: el,
     });

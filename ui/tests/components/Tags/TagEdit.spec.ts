@@ -122,9 +122,6 @@ describe("Tag Form Edit", async () => {
     wrapper = mount(TagEdit, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
     await wrapper.setProps({ tag: "tag-test" });

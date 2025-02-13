@@ -3,7 +3,7 @@ import { DOMWrapper, flushPromises, mount, VueWrapper } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MockAdapter from "axios-mock-adapter";
 import PublicKeyAdd from "@/components/PublicKeys/PublicKeyAdd.vue";
-import { namespacesApi, usersApi, sshApi } from "@/api/http";
+import { namespacesApi, usersApi, sshApi, tagsApi } from "@/api/http";
 import { store, key } from "@/store";
 import { router } from "@/router";
 import { envVariables } from "@/envVariables";
@@ -25,6 +25,8 @@ describe("Public Key Add", () => {
   let mockUser: MockAdapter;
 
   let mockSsh: MockAdapter;
+
+  let mockTags: MockAdapter;
 
   const members = [
     {
@@ -75,11 +77,12 @@ describe("Public Key Add", () => {
     mockNamespace = new MockAdapter(namespacesApi.getAxios());
     mockUser = new MockAdapter(usersApi.getAxios());
     mockSsh = new MockAdapter(sshApi.getAxios());
+    mockTags = new MockAdapter(tagsApi.getAxios());
 
     mockNamespace.onGet("http://localhost:3000/api/namespaces/fake-tenant-data").reply(200, namespaceData);
     mockUser.onGet("http://localhost:3000/api/users/security").reply(200, session);
     mockUser.onGet("http://localhost:3000/api/auth/user").reply(200, authData);
-    mockUser.onGet("http://localhost:3000/api/auth/user").reply(200, authData);
+    mockTags.onGet("http://localhost:3000/api/tags").reply(200);
 
     store.commit("auth/authSuccess", authData);
     store.commit("auth/changeData", authData);
@@ -88,9 +91,6 @@ describe("Public Key Add", () => {
     wrapper = mount(PublicKeyAdd, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

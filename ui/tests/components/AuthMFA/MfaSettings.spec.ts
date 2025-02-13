@@ -82,9 +82,6 @@ describe("MfaSettings", () => {
     wrapper = mount(MfaSettings, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });
