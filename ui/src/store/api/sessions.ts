@@ -11,4 +11,4 @@ export const closeSession = async (
   session: ISessions,
 ) => sessionsApi.clsoeSession(session.uid, { device: session.device_uid });
 
-export const getLog = async (uid: string) => sessionsApi.getSessionData(uid);
+export const getLog = async (uid: string) => sessionsApi.getSessionRecord(uid, 0);
