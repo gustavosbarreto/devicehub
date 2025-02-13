@@ -5,7 +5,7 @@
             "data": "test",
             "filter": {
                 "hostname": ".*",
-                "tags": ["tag-1"]
+				"tags": ["6791d3ae04ba86e6d7a0514d"]
             },
             "fingerprint": "fingerprint",
             "name": "public_key",

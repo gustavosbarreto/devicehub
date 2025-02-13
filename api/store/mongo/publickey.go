@@ -12,16 +12,22 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func (s *Store) PublicKeyGet(ctx context.Context, fingerprint string, tenantID string) (*models.PublicKey, error) {
+func (s *Store) PublicKeyGet(ctx context.Context, fingerprint string, tenantID string, opts ...store.PublicKeyQueryOption) (*models.PublicKey, error) {
 	pubKey := new(models.PublicKey)
 	if err := s.db.Collection("public_keys").FindOne(ctx, bson.M{"fingerprint": fingerprint, "tenant_id": tenantID}).Decode(&pubKey); err != nil {
 		return nil, FromMongoError(err)
 	}
 
+	for _, opt := range opts {
+		if err := opt(context.WithValue(ctx, "store", s), pubKey); err != nil { //nolint:revive
+			return nil, err
+		}
+	}
+
 	return pubKey, nil
 }
 
-func (s *Store) PublicKeyList(ctx context.Context, paginator query.Paginator) ([]models.PublicKey, int, error) {
+func (s *Store) PublicKeyList(ctx context.Context, paginator query.Paginator, opts ...store.PublicKeyQueryOption) ([]models.PublicKey, int, error) {
 	query := []bson.M{
 		{
 			"$sort": bson.M{
@@ -60,6 +66,13 @@ func (s *Store) PublicKeyList(ctx context.Context, paginator query.Paginator) ([
 		err = cursor.Decode(&key)
 		if err != nil {
 			return list, count, err
+		}
+
+		ctx := context.WithValue(ctx, "store", s) //nolint:revive
+		for _, opt := range opts {
+			if err := opt(ctx, key); err != nil {
+				return nil, 0, err
+			}
 		}
 
 		list = append(list, *key)

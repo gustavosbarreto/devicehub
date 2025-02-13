@@ -34,6 +34,7 @@ const (
 	fixtureUsers            = "users"             // Check "store.mongo.fixtures.users" for fixture iefo
 	fixtureNamespaces       = "namespaces"        // Check "store.mongo.fixtures.namespaces" for fixture info
 	fixtureRecoveryTokens   = "recovery_tokens"   // Check "store.mongo.fixtures.recovery_tokens" for fixture info
+	fixtureTags             = "tags"              // Check "store.mongo.fixtures.tags" for fixture info
 )
 
 func TestMain(m *testing.M) {
@@ -67,6 +68,7 @@ func TestMain(m *testing.M) {
 		mongotest.SimpleConvertTime("sessions", "last_seen"),
 		mongotest.SimpleConvertObjID("active_sessions", "_id"),
 		mongotest.SimpleConvertTime("active_sessions", "last_seen"),
+		mongotest.SimpleConvertObjID("tags", "_id"),
 	}
 
 	if err := srv.Up(ctx); err != nil {

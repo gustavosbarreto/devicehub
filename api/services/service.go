@@ -31,10 +31,8 @@ type Service interface {
 	BillingInterface
 	TagsService
 	DeviceService
-	DeviceTags
 	UserService
 	SSHKeysService
-	SSHKeysTagsService
 	SessionService
 	NamespaceService
 	MemberService

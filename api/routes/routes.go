@@ -122,13 +122,16 @@ func NewRouter(service services.Service, opts ...Option) *echo.Echo {
 	publicAPI.PATCH(UpdateDeviceStatusURL, gateway.Handler(handler.UpdateDeviceStatus), routesmiddleware.RequiresPermission(authorizer.DeviceAccept)) // TODO: DeviceWrite
 	publicAPI.DELETE(DeleteDeviceURL, gateway.Handler(handler.DeleteDevice), routesmiddleware.RequiresPermission(authorizer.DeviceRemove))
 
-	publicAPI.POST(CreateTagURL, gateway.Handler(handler.CreateDeviceTag), routesmiddleware.RequiresPermission(authorizer.DeviceCreateTag))
-	publicAPI.PUT(UpdateTagURL, gateway.Handler(handler.UpdateDeviceTag), routesmiddleware.RequiresPermission(authorizer.DeviceUpdateTag))
-	publicAPI.DELETE(RemoveTagURL, gateway.Handler(handler.RemoveDeviceTag), routesmiddleware.RequiresPermission(authorizer.DeviceRemoveTag))
+	publicAPI.POST(URLPushTagToDevice, gateway.Handler(handler.PushTagToDevice), routesmiddleware.RequiresPermission(authorizer.TagCreate))
+	publicAPI.DELETE(URLPullTagFromDevice, gateway.Handler(handler.PullTagFromDevice), routesmiddleware.RequiresPermission(authorizer.TagDelete))
 
-	publicAPI.GET(GetTagsURL, gateway.Handler(handler.GetTags))
-	publicAPI.PUT(RenameTagURL, gateway.Handler(handler.RenameTag), routesmiddleware.RequiresPermission(authorizer.DeviceRenameTag))
-	publicAPI.DELETE(DeleteTagsURL, gateway.Handler(handler.DeleteTag), routesmiddleware.RequiresPermission(authorizer.DeviceDeleteTag))
+	publicAPI.POST(URLPushTagToPublicKey, gateway.Handler(handler.PushTagToPublicKey), routesmiddleware.RequiresPermission(authorizer.TagCreate))
+	publicAPI.DELETE(URLPullTagFromPublicKey, gateway.Handler(handler.PullTagFromPublicKey), routesmiddleware.RequiresPermission(authorizer.TagDelete))
+
+	publicAPI.POST(URLCreateTag, gateway.Handler(handler.CreateTag), routesmiddleware.RequiresPermission(authorizer.TagCreate))
+	publicAPI.GET(URLListTags, gateway.Handler(handler.ListTags))
+	publicAPI.PATCH(URLUpdateTag, gateway.Handler(handler.UpdateTag), routesmiddleware.RequiresPermission(authorizer.TagUpdate))
+	publicAPI.DELETE(URLDeleteTag, gateway.Handler(handler.DeleteTag), routesmiddleware.RequiresPermission(authorizer.TagDelete))
 
 	publicAPI.GET(GetSessionsURL, routesmiddleware.Authorize(gateway.Handler(handler.GetSessionList)))
 	publicAPI.GET(GetSessionURL, routesmiddleware.Authorize(gateway.Handler(handler.GetSession)))
@@ -143,10 +146,6 @@ func NewRouter(service services.Service, opts ...Option) *echo.Echo {
 	publicAPI.GET(GetPublicKeysURL, gateway.Handler(handler.GetPublicKeys))
 	publicAPI.PUT(UpdatePublicKeyURL, gateway.Handler(handler.UpdatePublicKey), routesmiddleware.BlockAPIKey, routesmiddleware.RequiresPermission(authorizer.PublicKeyEdit))
 	publicAPI.DELETE(DeletePublicKeyURL, gateway.Handler(handler.DeletePublicKey), routesmiddleware.BlockAPIKey, routesmiddleware.RequiresPermission(authorizer.PublicKeyRemove))
-
-	publicAPI.POST(AddPublicKeyTagURL, gateway.Handler(handler.AddPublicKeyTag), routesmiddleware.RequiresPermission(authorizer.PublicKeyAddTag))
-	publicAPI.PUT(UpdatePublicKeyTagsURL, gateway.Handler(handler.UpdatePublicKeyTags), routesmiddleware.RequiresPermission(authorizer.PublicKeyUpdateTag))
-	publicAPI.DELETE(RemovePublicKeyTagURL, gateway.Handler(handler.RemovePublicKeyTag), routesmiddleware.RequiresPermission(authorizer.PublicKeyRemoveTag))
 
 	publicAPI.POST(CreateNamespaceURL, gateway.Handler(handler.CreateNamespace))
 	publicAPI.GET(GetNamespaceURL, gateway.Handler(handler.GetNamespace))
