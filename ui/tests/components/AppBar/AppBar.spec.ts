@@ -1,9 +1,9 @@
 import { createVuetify } from "vuetify";
-import { mount, VueWrapper } from "@vue/test-utils";
+import { flushPromises, mount, VueWrapper } from "@vue/test-utils";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import MockAdapter from "axios-mock-adapter";
 import { VLayout } from "vuetify/components";
-import { namespacesApi, usersApi } from "@/api/http";
+import { namespacesApi, systemApi, usersApi } from "@/api/http";
 import AppBar from "@/components/AppBar/AppBar.vue";
 import { store, key } from "@/store";
 import { router } from "@/router";
@@ -16,6 +16,8 @@ const Component = {
 let mockNamespace: MockAdapter;
 
 let mockUser: MockAdapter;
+
+let mockSystem: MockAdapter;
 
 const members = [
   {
@@ -37,6 +39,15 @@ const namespaceData = {
   max_devices: 3,
   devices_count: 3,
   created_at: "",
+  billing: {
+    active: true,
+    status: "active",
+    customer_id: "cus_test",
+    subscription_id: "sub_test",
+    current_period_end: 999999999999,
+    created_at: "",
+    updated_at: "",
+  },
 };
 
 const authData = {
@@ -54,28 +65,55 @@ const authData = {
   },
 };
 
+const systemInfo = {
+  version: "v0.18.0",
+  endpoints:
+{
+  ssh: "localhost:2222",
+  api: "localhost:8080",
+},
+  setup: true,
+  authentication:
+  {
+    local: true,
+    saml: false,
+  },
+};
+
 describe("AppBar Component", () => {
   let wrapper: VueWrapper<unknown>;
   const vuetify = createVuetify();
-  envVariables.isCloud = true;
 
   beforeEach(async () => {
+    envVariables.isCloud = true;
+    window.matchMedia = vi.fn().mockImplementation((query) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }));
+
     vi.useFakeTimers();
     localStorage.setItem("tenant", "fake-tenant-data");
 
     mockNamespace = new MockAdapter(namespacesApi.getAxios());
     mockUser = new MockAdapter(usersApi.getAxios());
+    mockSystem = new MockAdapter(systemApi.getAxios());
+
     store.commit("auth/userInfo", { tenant: "fake-tenant-data" });
+    store.commit("billing/setSubscription", namespaceData.billing);
 
     mockNamespace.onGet("http://localhost:3000/api/namespaces/fake-tenant-data").reply(200, namespaceData);
     mockUser.onGet("http://localhost:3000/api/auth/user").reply(200, authData);
+    mockSystem.onGet("http://localhost:3000/info").reply(200, systemInfo);
 
     wrapper = mount(Component, {
       global: {
         plugins: [[store, key], vuetify, router],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
         components: {
           "v-layout": VLayout,
           AppBar,
@@ -84,7 +122,7 @@ describe("AppBar Component", () => {
     });
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     wrapper.unmount();
@@ -146,25 +184,23 @@ describe("AppBar Component", () => {
     });
   });
 
-  it("Opens the default ShellHub support URL if identifier is not set", async () => {
-    mockNamespace.onGet("http://localhost:3000/api/namespaces/fake-tenant-data/support").reply(200, { identifier: "" });
-
+  it("Opens the paywall if instance is community", async () => {
+    envVariables.isCloud = false;
+    envVariables.isCommunity = true;
     const drawer = wrapper.findComponent(AppBar);
-
-    const windowOpenMock = vi.spyOn(window, "open");
 
     await drawer.vm.openShellhubHelp();
 
-    expect(windowOpenMock).toHaveBeenCalledWith(
-      "https://github.com/shellhub-io/shellhub/issues/new/choose",
-      "_blank",
-    );
+    await flushPromises();
+
+    expect(drawer.vm.chatSupportPaywall).toBeTruthy();
   });
 
   it("Uses Chatwoot if identifier is set", async () => {
     mockNamespace.onGet("http://localhost:3000/api/namespaces/fake-tenant-data/support").reply(200, { identifier: "fake-identifier" });
 
     const drawer = wrapper.findComponent(AppBar);
+
     const supportBtn = wrapper.find('[data-test="support-btn"]');
 
     vi.spyOn(drawer.vm, "identifier", "get").mockReturnValue("mocked_identifier");
@@ -173,6 +209,8 @@ describe("AppBar Component", () => {
     const storeDispatchMock = vi.spyOn(store, "dispatch");
 
     await supportBtn.trigger("click");
+
+    await flushPromises();
 
     expect(windowOpenMock).not.toHaveBeenCalled();
     expect(storeDispatchMock).toHaveBeenCalledWith("support/get", "fake-tenant-data");

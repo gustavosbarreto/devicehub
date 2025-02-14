@@ -239,7 +239,9 @@ exports[`App Layout Component > Renders the component 1`] = `
       <!---->
     </transition-stub>
     <snackbarcomponent data-v-e7291ef4=""></snackbarcomponent>
-    <header data-v-e7291ef4="" class="v-toolbar v-toolbar--flat v-toolbar--floating v-toolbar--density-default v-theme--dark v-locale--is-ltr v-app-bar bg-background border-b-thin" style="top: 0px; z-index: 1004; transform: translateY(0px); position: fixed; transition: none; left: 0px; width: calc(100% - 0px - 0px);" data-test="app-bar">
+    <!---->
+    <!---->
+    <header class="v-toolbar v-toolbar--flat v-toolbar--floating v-toolbar--density-default v-theme--dark v-locale--is-ltr v-app-bar bg-background border-b-thin" style="top: 0px; z-index: 1004; transform: translateY(0px); position: fixed; transition: none; left: 0px; width: calc(100% - 0px - 0px);" data-test="app-bar">
       <!---->
       <div class="v-toolbar__content" style="height: 64px;">
         <!---->

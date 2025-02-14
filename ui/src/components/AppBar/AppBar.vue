@@ -1,4 +1,5 @@
 <template>
+  <PaywallChat v-model="chatSupportPaywall" />
   <v-app-bar
     flat
     floating
@@ -98,13 +99,14 @@ import {
   ref,
 } from "vue";
 import { useRouter, useRoute, RouteLocationRaw, RouteLocation } from "vue-router";
-import { useEventListener } from "@vueuse/core";
 import { useChatWoot } from "@productdevbook/chatwoot/vue";
+import { useEventListener } from "@vueuse/core";
 import { useStore } from "../../store";
 import { createNewClient } from "../../api/http";
 import handleError from "../../utils/handleError";
 import UserIcon from "../User/UserIcon.vue";
 import Notification from "./Notifications/Notification.vue";
+import PaywallChat from "../User/PaywallChat.vue";
 import { envVariables } from "@/envVariables";
 
 type MenuItem = {
@@ -119,9 +121,6 @@ type BreadcrumbItem = {
   title: string;
   href: string;
 };
-
-const { setUser, setConversationCustomAttributes } = useChatWoot();
-
 const store = useStore();
 const router = useRouter();
 const route = useRoute();
@@ -131,11 +130,11 @@ const getStatusDarkMode = computed(
 const tenant = computed(() => store.getters["auth/tenant"]);
 const userEmail = computed(() => store.getters["auth/email"]);
 const userId = computed(() => store.getters["auth/id"]);
-const identifier = computed(() => store.getters["support/getIdentifier"]);
 const currentUser = computed(() => store.getters["auth/currentUser"]);
-const isDarkMode = ref(getStatusDarkMode.value === "dark");
 const billingActive = computed(() => store.getters["billing/active"]);
-
+const identifier = computed(() => store.getters["support/getIdentifier"]);
+const isDarkMode = ref(getStatusDarkMode.value === "dark");
+const chatSupportPaywall = ref(false);
 const showNavigationDrawer = defineModel<boolean>();
 
 const triggerClick = (item: MenuItem): void => {
@@ -168,19 +167,17 @@ const toggleDarkMode = () => {
   store.dispatch("layout/setStatusDarkMode", isDarkMode.value);
 };
 
-const openShellhubHelp = async () => {
-  if ((envVariables.isCloud || envVariables.isEnterprise) && billingActive) {
-    await store.dispatch("support/get", tenant.value);
-  }
-  if (identifier.value.length === 0) {
-    window.open("https://github.com/shellhub-io/shellhub/issues/new/choose", "_blank");
-    return;
-  }
+const openChatwoot = async (): Promise<void> => {
+  const { setUser, setConversationCustomAttributes, toggle } = useChatWoot();
+
+  await store.dispatch("support/get", tenant.value);
+
   setUser(userId.value, {
     name: currentUser.value,
     email: userEmail.value,
     identifier_hash: identifier.value,
   });
+
   useEventListener(window, "chatwoot:on-message", () => {
     setConversationCustomAttributes({
       namespace: store.getters["namespaces/get"].name,
@@ -188,7 +185,36 @@ const openShellhubHelp = async () => {
       domain: window.location.hostname,
     });
   });
-  await store.dispatch("support/toggle");
+
+  store.commit("support/setCreatedStatus", true);
+  toggle("open");
+};
+
+const openPaywall = (): void => {
+  chatSupportPaywall.value = true;
+};
+
+const redirectToGitHub = (): void => {
+  window.open("https://github.com/shellhub-io/shellhub/issues/new/choose", "_blank");
+};
+
+const openShellhubHelp = async (): Promise<void> => {
+  switch (true) {
+    case envVariables.isCloud && billingActive.value:
+      await openChatwoot();
+      break;
+
+    case envVariables.isCommunity || (envVariables.isCloud && !billingActive.value):
+      openPaywall();
+      break;
+
+    case envVariables.isEnterprise:
+      redirectToGitHub();
+      break;
+
+    default:
+      throw new Error("Unsupported environment configuration.");
+  }
 };
 
 const menu = [
@@ -225,5 +251,5 @@ const generateBreadcrumbs = (route: RouteLocation): BreadcrumbItem[] => {
 
 const breadcrumbItems = computed(() => generateBreadcrumbs(route));
 
-defineExpose({ openShellhubHelp, logout, isDarkMode, breadcrumbItems, currentUser, identifier });
+defineExpose({ openShellhubHelp, chatSupportPaywall, logout, isDarkMode, breadcrumbItems, currentUser, identifier });
 </script>

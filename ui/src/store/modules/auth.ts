@@ -129,8 +129,6 @@ export const auth: Module<AuthState, State> = {
       state.email = "";
       state.role = "";
       state.mfa = false;
-      toggle("close");
-      reset();
     },
 
     changeData(state, data) {
@@ -363,6 +361,11 @@ export const auth: Module<AuthState, State> = {
       localStorage.removeItem("role");
       localStorage.removeItem("mfa");
       localStorage.removeItem("recovery_email");
+      const chatIsCreated = context.rootGetters["support/getCreatedStatus"];
+      if (chatIsCreated) {
+        toggle("close");
+        reset();
+      }
     },
 
     changeUserData(context, data) {

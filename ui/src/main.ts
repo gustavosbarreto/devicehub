@@ -40,7 +40,7 @@ app.use(VueGtag, {
   config: { id: envVariables.googleAnalyticsID || "" },
 });
 
-if ((envVariables.isCloud || envVariables.isEnterprise) && (envVariables.chatWootWebsiteToken && envVariables.chatWootBaseURL)) {
+if ((envVariables.isCloud) && (envVariables.chatWootWebsiteToken && envVariables.chatWootBaseURL)) {
   app.use(
     createChatWoot({
       init: {

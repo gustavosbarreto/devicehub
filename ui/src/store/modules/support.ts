@@ -1,27 +1,31 @@
 import { Module } from "vuex";
-import { useChatWoot } from "@productdevbook/chatwoot/vue";
 import * as apiSupport from "../api/namespaces";
 import { State } from "..";
 
-const { toggle } = useChatWoot();
-
 export interface SupportState {
   identifier: string;
+  chatCreated: boolean;
 }
 
 export const support: Module<SupportState, State> = {
   namespaced: true,
   state: {
     identifier: "",
+    chatCreated: false,
   },
 
   getters: {
     getIdentifier: (state) => state.identifier,
+    getCreatedStatus: (state) => state.chatCreated,
   },
 
   mutations: {
     setIdentifier: (state, identifier) => {
       state.identifier = identifier;
+    },
+
+    setCreatedStatus: (state, status) => {
+      state.chatCreated = status;
     },
   },
 
@@ -35,6 +39,5 @@ export const support: Module<SupportState, State> = {
         throw error;
       }
     },
-    toggle: () => { toggle("open"); },
   },
 };
