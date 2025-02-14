@@ -114,9 +114,6 @@ describe("Setting Namespace", () => {
     wrapper = mount(SettingNamespace, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

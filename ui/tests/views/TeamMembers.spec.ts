@@ -103,9 +103,6 @@ describe("Team Members", () => {
     wrapper = mount(TeamMembers, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

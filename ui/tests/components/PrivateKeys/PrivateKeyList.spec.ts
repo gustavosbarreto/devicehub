@@ -92,9 +92,6 @@ describe("Private Key List", () => {
     wrapper = mount(PrivateKeyList, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
     store.commit("auth/authSuccess", authData);

@@ -88,9 +88,6 @@ describe("Public Key Delete", () => {
     wrapper = mount(PublicKeyDelete, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

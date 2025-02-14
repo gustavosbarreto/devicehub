@@ -86,9 +86,6 @@ describe("Device Rename", () => {
     wrapper = mount(DeviceRename, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

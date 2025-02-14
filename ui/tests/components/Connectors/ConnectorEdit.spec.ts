@@ -85,9 +85,6 @@ describe("Connector Edit", () => {
     wrapper = mount(ConnectorEdit, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

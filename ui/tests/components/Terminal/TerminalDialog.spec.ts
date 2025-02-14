@@ -118,9 +118,6 @@ describe("Terminal Dialog", async () => {
     wrapper = mount(TerminalDialog, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

@@ -64,7 +64,12 @@ describe("Public Key List", () => {
   const res = {
     data: [
       {
-        data: "test-key",
+        data: `LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlHZk1BMEdDU3FHU0liM0RRR
+        UJBUVVBQTRHTkFEQ0JpUUtCZ1FDTHlMRjdUT0VhbFphdE5RcUlRQTdtd1d3WQoxcU5wN
+        Elzcm8ya04zdTdIUEh1WmN1VGxlRS94MWpXNFZSTUJTaWMrZzNxak5VaS9YVCtMYndzO
+        VRmN0ZqVUxLCnEwUzduRGRWNGRjYmYwdHJROWM4K3gvOHEvcURUWk13SC9sRXdVQ1hXQ
+        TF5YW5JVjllT1RMUURld0VnRUFHYzQKeDFOQ2NaWTVUY3dZanprNTN3SURBUUFCCi0t
+        LS0tRU5EIFBVQkxJQyBLRVktLS0tLQ==`,
         fingerprint: "fake-fingerprint",
         created_at: "2020-05-01T00:00:00.000Z",
         tenant_id: "fake-tenant",
@@ -103,9 +108,6 @@ describe("Public Key List", () => {
     wrapper = mount(PublicKeysList, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

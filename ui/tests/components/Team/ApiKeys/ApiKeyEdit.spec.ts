@@ -109,9 +109,6 @@ describe("Api Key Edit", () => {
     wrapper = mount(ApiKeyEdit, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

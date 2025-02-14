@@ -85,9 +85,6 @@ describe("Member Delete", () => {
     wrapper = mount(MemberDelete, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
       attachTo: el,
     });

@@ -138,9 +138,6 @@ describe("Sessions View", () => {
     wrapper = mount(Sessions, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

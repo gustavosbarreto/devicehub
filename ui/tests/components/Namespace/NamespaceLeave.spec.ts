@@ -86,9 +86,6 @@ describe("Namespace Leave", () => {
     wrapper = mount(NamespaceLeave, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

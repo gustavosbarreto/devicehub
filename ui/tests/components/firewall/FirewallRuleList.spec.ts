@@ -102,9 +102,6 @@ describe("Firewall Rule List", () => {
     wrapper = mount(FirewallRuleList, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

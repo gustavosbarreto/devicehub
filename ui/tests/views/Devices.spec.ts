@@ -100,9 +100,6 @@ describe("Devices View", () => {
     wrapper = mount(Devices, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

@@ -109,9 +109,6 @@ describe("Api Key Delete", () => {
     wrapper = mount(ApiKeyDelete, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
     await wrapper.setProps({ keyId: "fake-id" });

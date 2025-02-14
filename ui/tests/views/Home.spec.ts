@@ -89,9 +89,6 @@ describe("Home", () => {
     wrapper = mount(Home, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });

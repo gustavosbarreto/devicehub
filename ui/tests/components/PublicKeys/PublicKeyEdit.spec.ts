@@ -3,7 +3,7 @@ import { DOMWrapper, flushPromises, mount, VueWrapper } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import MockAdapter from "axios-mock-adapter";
 import PublicKeyEdit from "@/components/PublicKeys/PublicKeyEdit.vue";
-import { namespacesApi, usersApi, sshApi } from "@/api/http";
+import { namespacesApi, usersApi, sshApi, tagsApi } from "@/api/http";
 import { store, key } from "@/store";
 import { router } from "@/router";
 import { envVariables } from "@/envVariables";
@@ -25,6 +25,8 @@ describe("Public Key Edit", () => {
   let mockUser: MockAdapter;
 
   let mockSsh: MockAdapter;
+
+  let mockTags: MockAdapter;
 
   const members = [
     {
@@ -75,11 +77,12 @@ describe("Public Key Edit", () => {
     mockNamespace = new MockAdapter(namespacesApi.getAxios());
     mockUser = new MockAdapter(usersApi.getAxios());
     mockSsh = new MockAdapter(sshApi.getAxios());
+    mockTags = new MockAdapter(tagsApi.getAxios());
 
     mockNamespace.onGet("http://localhost:3000/api/namespaces/fake-tenant-data").reply(200, namespaceData);
     mockUser.onGet("http://localhost:3000/api/users/security").reply(200, session);
     mockUser.onGet("http://localhost:3000/api/auth/user").reply(200, authData);
-    mockUser.onGet("http://localhost:3000/api/auth/user").reply(200, authData);
+    mockTags.onGet("http://localhost:3000/api/tags").reply(200);
 
     store.commit("auth/authSuccess", authData);
     store.commit("auth/changeData", authData);
@@ -88,8 +91,16 @@ describe("Public Key Edit", () => {
     wrapper = mount(PublicKeyEdit, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
+      },
+      props: {
+        keyObject: {
+          data: "fake key",
+          filter: {
+            hostname: ".*",
+          },
+          name: "my edited public key",
+          username: ".*",
+          fingerprint: "fingerprint123",
         },
       },
     });
@@ -131,15 +142,6 @@ describe("Public Key Edit", () => {
   });
 
   it("Allows editing a public key with username restriction", async () => {
-    await wrapper.setProps({ keyObject: {
-      data: "fake key",
-      filter: {
-        hostname: ".*",
-      },
-      name: "my edited public key",
-      username: ".*",
-      fingerprint: "fingerprint123",
-    } });
     mockSsh.onPut("http://localhost:3000/api/sshkeys/public-keys/fingerprint123").reply(200);
     const pkEdit = vi.spyOn(store, "dispatch");
     await wrapper.findComponent('[data-test="public-key-edit-title-btn"]').trigger("click");

@@ -107,9 +107,6 @@ describe("Api Key List", () => {
     wrapper = mount(ApiKeyList, {
       global: {
         plugins: [[store, key], vuetify, router, SnackbarPlugin],
-        config: {
-          errorHandler: () => { /* ignore global error handler */ },
-        },
       },
     });
   });
